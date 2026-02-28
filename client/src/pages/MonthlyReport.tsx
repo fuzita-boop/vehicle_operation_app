@@ -38,15 +38,11 @@ export default function MonthlyReport() {
   );
 
   useEffect(() => {
-    if (driver?.driverName) {
-      setDriverName(driver.driverName);
-    }
+    if (driver?.driverName) setDriverName(driver.driverName);
   }, [driver]);
 
   useEffect(() => {
-    if (vehicle?.vehicleNumber) {
-      setVehicleNumber(vehicle.vehicleNumber);
-    }
+    if (vehicle?.vehicleNumber) setVehicleNumber(vehicle.vehicleNumber);
   }, [vehicle]);
 
   useEffect(() => {
@@ -97,91 +93,134 @@ export default function MonthlyReport() {
   }, 0);
 
   const getFileName = useCallback(() => {
-    const period = cycleInfo.start && cycleInfo.end
-      ? `${cycleInfo.start}-${cycleInfo.end}`.replace(/\//g, "")
-      : new Date().toISOString().split("T")[0];
+    const period =
+      cycleInfo.start && cycleInfo.end
+        ? `${cycleInfo.start}-${cycleInfo.end}`.replace(/\//g, "")
+        : new Date().toISOString().split("T")[0];
     return `車両運行日報_${driverName || "未設定"}_${period}`;
   }, [cycleInfo, driverName]);
 
-  // Convert OKLCH colors to RGB for html2canvas compatibility
-  const convertOklchToRgb = useCallback((element: HTMLElement) => {
-    const allElements = element.querySelectorAll("*");
-    const originalStyles: { el: HTMLElement; prop: string; value: string }[] = [];
+  // Build a pure-HTML string with only hex/rgb colors (no oklch) for html2canvas
+  const buildReportHtml = useCallback(() => {
+    const rows = records
+      .map((record) => {
+        const depDist =
+          typeof record.departureDistance === "string"
+            ? parseFloat(record.departureDistance)
+            : record.departureDistance;
+        const arrDist =
+          typeof record.arrivalDistance === "string"
+            ? parseFloat(record.arrivalDistance)
+            : record.arrivalDistance;
+        const distance = calculateDistance(depDist, arrDist);
+        const dateStr = new Date(record.recordDate).toLocaleDateString("ja-JP");
+        return `<tr>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:11px;">${dateStr}</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:11px;text-align:center;">${record.departureTime}</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:11px;text-align:center;">${record.arrivalTime}</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:11px;text-align:right;">${depDist.toFixed(1)}</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:11px;text-align:right;">${arrDist.toFixed(1)}</td>
+          <td style="border:1px solid #000;padding:4px 8px;font-size:11px;text-align:right;font-weight:600;">${distance.toFixed(1)}</td>
+        </tr>`;
+      })
+      .join("");
 
-    const convert = (el: HTMLElement) => {
-      const computed = window.getComputedStyle(el);
-      const propsToCheck = [
-        "color",
-        "backgroundColor",
-        "borderColor",
-        "borderTopColor",
-        "borderRightColor",
-        "borderBottomColor",
-        "borderLeftColor",
-      ];
-      propsToCheck.forEach((prop) => {
-        const val = computed.getPropertyValue(prop);
-        if (val && val.includes("oklch")) {
-          // Create a temporary element to resolve the color
-          const temp = document.createElement("div");
-          temp.style.color = val;
-          document.body.appendChild(temp);
-          const resolved = window.getComputedStyle(temp).color;
-          document.body.removeChild(temp);
+    const emptyRow =
+      records.length === 0
+        ? `<tr><td colspan="6" style="border:1px solid #000;padding:16px 8px;font-size:11px;text-align:center;color:#888;">記録がありません</td></tr>`
+        : "";
 
-          const camelProp = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-          originalStyles.push({
-            el,
-            prop: camelProp,
-            value: (el.style as any)[camelProp],
-          });
-          (el.style as any)[camelProp] = resolved || "#000000";
-        }
-      });
-    };
+    return `
+      <div style="width:700px;padding:32px;background:#fff;color:#000;font-family:'Noto Sans JP',sans-serif;">
+        <div style="margin-bottom:12px;border-bottom:2px solid #000;padding-bottom:8px;">
+          <h1 style="font-size:20px;font-weight:700;text-align:center;margin:0 0 8px 0;">車両運行日報</h1>
+          <div style="display:flex;gap:32px;font-size:12px;">
+            <div style="flex:1;">
+              <p style="color:#888;margin:0;">運転者名</p>
+              <p style="font-weight:600;margin:2px 0 0 0;">${driverName || "-"}</p>
+            </div>
+            <div style="flex:1;">
+              <p style="color:#888;margin:0;">車両番号</p>
+              <p style="font-weight:600;margin:2px 0 0 0;">${vehicleNumber || "-"}</p>
+            </div>
+          </div>
+          <div style="text-align:center;font-size:12px;margin-top:4px;">
+            <p style="color:#888;margin:0;">対象期間: ${cycleInfo.start} 〜 ${cycleInfo.end}</p>
+          </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+          <thead>
+            <tr>
+              <th style="border:1px solid #000;padding:6px 8px;background:#e5e5e5;font-weight:700;font-size:11px;">日付</th>
+              <th style="border:1px solid #000;padding:6px 8px;background:#e5e5e5;font-weight:700;font-size:11px;">出発時間</th>
+              <th style="border:1px solid #000;padding:6px 8px;background:#e5e5e5;font-weight:700;font-size:11px;">終了時間</th>
+              <th style="border:1px solid #000;padding:6px 8px;background:#e5e5e5;font-weight:700;font-size:11px;">出発走行距離</th>
+              <th style="border:1px solid #000;padding:6px 8px;background:#e5e5e5;font-weight:700;font-size:11px;">終了走行距離</th>
+              <th style="border:1px solid #000;padding:6px 8px;background:#e5e5e5;font-weight:700;font-size:11px;">走行距離</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${emptyRow}${rows}
+          </tbody>
+        </table>
+        <div style="border-top:2px solid #000;padding-top:8px;display:flex;gap:32px;font-size:12px;">
+          <div style="flex:1;">
+            <p style="color:#888;margin:0;">記録日数</p>
+            <p style="font-size:18px;font-weight:700;margin:2px 0 0 0;">${records.length}</p>
+          </div>
+          <div style="flex:1;">
+            <p style="color:#888;margin:0;">総走行距離</p>
+            <p style="font-size:18px;font-weight:700;margin:2px 0 0 0;">${totalDistance.toFixed(1)} km</p>
+          </div>
+        </div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #ccc;font-size:11px;color:#888;text-align:center;">
+          <p style="margin:0;">印刷日: ${new Date().toLocaleDateString("ja-JP")}</p>
+        </div>
+      </div>
+    `;
+  }, [records, driverName, vehicleNumber, cycleInfo, totalDistance]);
 
-    convert(element);
-    allElements.forEach((child) => convert(child as HTMLElement));
+  const captureReportCanvas = useCallback(
+    async (scale: number) => {
+      const html2canvas = (await import("html2canvas")).default;
 
-    return () => {
-      originalStyles.forEach(({ el, prop, value }) => {
-        (el.style as any)[prop] = value;
-      });
-    };
-  }, []);
+      // Create an offscreen container with pure RGB/hex styles
+      const container = document.createElement("div");
+      container.style.position = "absolute";
+      container.style.left = "-9999px";
+      container.style.top = "0";
+      container.innerHTML = buildReportHtml();
+      document.body.appendChild(container);
+
+      try {
+        const canvas = await html2canvas(container.firstElementChild as HTMLElement, {
+          scale,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          logging: false,
+        });
+        return canvas;
+      } finally {
+        document.body.removeChild(container);
+      }
+    },
+    [buildReportHtml]
+  );
 
   const handleDownloadPdf = useCallback(async () => {
-    if (!reportRef.current) return;
     setIsGeneratingPdf(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
       const { jsPDF } = await import("jspdf");
+      const canvas = await captureReportCanvas(2);
 
-      const element = reportRef.current;
-      const restoreColors = convertOklchToRgb(element);
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
-      restoreColors();
-
-      // A4 dimensions in mm
       const a4Width = 210;
       const a4Height = 297;
-
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
       const imgData = canvas.toDataURL("image/png");
       const imgWidth = a4Width;
       const imgHeight = (canvas.height * a4Width) / canvas.width;
 
-      // Scale to fit A4 if needed
       if (imgHeight > a4Height) {
         const scale = a4Height / imgHeight;
         const scaledWidth = imgWidth * scale;
@@ -199,24 +238,12 @@ export default function MonthlyReport() {
     } finally {
       setIsGeneratingPdf(false);
     }
-  }, [getFileName, convertOklchToRgb]);
+  }, [getFileName, captureReportCanvas]);
 
   const handleDownloadImage = useCallback(async () => {
-    if (!reportRef.current) return;
     setIsGeneratingImage(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
-
-      const element = reportRef.current;
-      const restoreColors = convertOklchToRgb(element);
-      const canvas = await html2canvas(element, {
-        scale: 3,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
-      restoreColors();
-
+      const canvas = await captureReportCanvas(3);
       const link = document.createElement("a");
       link.download = `${getFileName()}.png`;
       link.href = canvas.toDataURL("image/png");
@@ -228,30 +255,36 @@ export default function MonthlyReport() {
     } finally {
       setIsGeneratingImage(false);
     }
-  }, [getFileName, convertOklchToRgb]);
+  }, [getFileName, captureReportCanvas]);
 
   return (
     <VehicleLayout title="月次レポート" subtitle="1ヶ月分の運行記録">
-      {/* Print Container */}
+      {/* Print Container - visible report */}
       <div
         ref={reportRef}
         className="print-container bg-white p-8 rounded-lg border border-border shadow-sm"
       >
         {/* Header */}
         <div className="mb-3 border-b-2 border-black pb-2">
-          <h1 className="text-xl font-bold text-center mb-1">車両運行日報</h1>
+          <h1 className="text-xl font-bold text-center mb-1" style={{ color: "#000" }}>
+            車両運行日報
+          </h1>
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
-              <p className="text-muted-foreground">運転者名</p>
-              <p className="font-semibold">{driverName || "-"}</p>
+              <p style={{ color: "#888" }}>運転者名</p>
+              <p className="font-semibold" style={{ color: "#000" }}>
+                {driverName || "-"}
+              </p>
             </div>
             <div>
-              <p className="text-muted-foreground">車両番号</p>
-              <p className="font-semibold">{vehicleNumber || "-"}</p>
+              <p style={{ color: "#888" }}>車両番号</p>
+              <p className="font-semibold" style={{ color: "#000" }}>
+                {vehicleNumber || "-"}
+              </p>
             </div>
           </div>
           <div className="mt-1 text-center text-xs">
-            <p className="text-muted-foreground">
+            <p style={{ color: "#888" }}>
               対象期間: {cycleInfo.start} 〜 {cycleInfo.end}
             </p>
           </div>
@@ -285,7 +318,11 @@ export default function MonthlyReport() {
             <tbody>
               {records.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="border border-black px-2 py-8 text-xs text-center text-muted-foreground">
+                  <td
+                    colSpan={6}
+                    className="border border-black px-2 py-8 text-xs text-center"
+                    style={{ color: "#888" }}
+                  >
                     記録がありません
                   </td>
                 </tr>
@@ -333,18 +370,25 @@ export default function MonthlyReport() {
         <div className="border-t-2 border-black pt-2">
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
-              <p className="text-muted-foreground">記録日数</p>
-              <p className="text-lg font-bold">{records.length}</p>
+              <p style={{ color: "#888" }}>記録日数</p>
+              <p className="text-lg font-bold" style={{ color: "#000" }}>
+                {records.length}
+              </p>
             </div>
             <div>
-              <p className="text-muted-foreground">総走行距離</p>
-              <p className="text-lg font-bold">{totalDistance.toFixed(1)} km</p>
+              <p style={{ color: "#888" }}>総走行距離</p>
+              <p className="text-lg font-bold" style={{ color: "#000" }}>
+                {totalDistance.toFixed(1)} km
+              </p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-2 pt-2 border-t border-gray-300 text-xs text-muted-foreground text-center">
+        <div
+          className="mt-2 pt-2 border-t text-xs text-center"
+          style={{ borderColor: "#ccc", color: "#888" }}
+        >
           <p>印刷日: {new Date().toLocaleDateString("ja-JP")}</p>
         </div>
       </div>
@@ -363,7 +407,8 @@ export default function MonthlyReport() {
           <button
             onClick={handleDownloadPdf}
             disabled={isGeneratingPdf}
-            className="btn-primary flex items-center justify-center gap-2 py-3 bg-red-600 hover:bg-red-700 text-white"
+            className="flex items-center justify-center gap-2 py-3 rounded-lg font-medium shadow-md transition-all text-white"
+            style={{ backgroundColor: isGeneratingPdf ? "#999" : "#dc2626" }}
           >
             {isGeneratingPdf ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -376,7 +421,8 @@ export default function MonthlyReport() {
           <button
             onClick={handleDownloadImage}
             disabled={isGeneratingImage}
-            className="btn-primary flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 text-white"
+            className="flex items-center justify-center gap-2 py-3 rounded-lg font-medium shadow-md transition-all text-white"
+            style={{ backgroundColor: isGeneratingImage ? "#999" : "#16a34a" }}
           >
             {isGeneratingImage ? (
               <Loader2 className="h-5 w-5 animate-spin" />
