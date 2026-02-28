@@ -103,6 +103,53 @@ export default function MonthlyReport() {
     return `車両運行日報_${driverName || "未設定"}_${period}`;
   }, [cycleInfo, driverName]);
 
+  // Convert OKLCH colors to RGB for html2canvas compatibility
+  const convertOklchToRgb = useCallback((element: HTMLElement) => {
+    const allElements = element.querySelectorAll("*");
+    const originalStyles: { el: HTMLElement; prop: string; value: string }[] = [];
+
+    const convert = (el: HTMLElement) => {
+      const computed = window.getComputedStyle(el);
+      const propsToCheck = [
+        "color",
+        "backgroundColor",
+        "borderColor",
+        "borderTopColor",
+        "borderRightColor",
+        "borderBottomColor",
+        "borderLeftColor",
+      ];
+      propsToCheck.forEach((prop) => {
+        const val = computed.getPropertyValue(prop);
+        if (val && val.includes("oklch")) {
+          // Create a temporary element to resolve the color
+          const temp = document.createElement("div");
+          temp.style.color = val;
+          document.body.appendChild(temp);
+          const resolved = window.getComputedStyle(temp).color;
+          document.body.removeChild(temp);
+
+          const camelProp = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+          originalStyles.push({
+            el,
+            prop: camelProp,
+            value: (el.style as any)[camelProp],
+          });
+          (el.style as any)[camelProp] = resolved || "#000000";
+        }
+      });
+    };
+
+    convert(element);
+    allElements.forEach((child) => convert(child as HTMLElement));
+
+    return () => {
+      originalStyles.forEach(({ el, prop, value }) => {
+        (el.style as any)[prop] = value;
+      });
+    };
+  }, []);
+
   const handleDownloadPdf = useCallback(async () => {
     if (!reportRef.current) return;
     setIsGeneratingPdf(true);
@@ -111,12 +158,14 @@ export default function MonthlyReport() {
       const { jsPDF } = await import("jspdf");
 
       const element = reportRef.current;
+      const restoreColors = convertOklchToRgb(element);
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
       });
+      restoreColors();
 
       // A4 dimensions in mm
       const a4Width = 210;
@@ -150,7 +199,7 @@ export default function MonthlyReport() {
     } finally {
       setIsGeneratingPdf(false);
     }
-  }, [getFileName]);
+  }, [getFileName, convertOklchToRgb]);
 
   const handleDownloadImage = useCallback(async () => {
     if (!reportRef.current) return;
@@ -159,12 +208,14 @@ export default function MonthlyReport() {
       const html2canvas = (await import("html2canvas")).default;
 
       const element = reportRef.current;
+      const restoreColors = convertOklchToRgb(element);
       const canvas = await html2canvas(element, {
         scale: 3,
         useCORS: true,
         backgroundColor: "#ffffff",
         logging: false,
       });
+      restoreColors();
 
       const link = document.createElement("a");
       link.download = `${getFileName()}.png`;
@@ -177,7 +228,7 @@ export default function MonthlyReport() {
     } finally {
       setIsGeneratingImage(false);
     }
-  }, [getFileName]);
+  }, [getFileName, convertOklchToRgb]);
 
   return (
     <VehicleLayout title="月次レポート" subtitle="1ヶ月分の運行記録">
