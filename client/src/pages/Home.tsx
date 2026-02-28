@@ -66,7 +66,7 @@ export default function Home() {
             {!isEditingDriver && (
               <button
                 onClick={() => setIsEditingDriver(true)}
-                className="text-sm text-accent hover:underline"
+                className="px-3 py-1 text-sm font-semibold bg-accent text-accent-foreground rounded-md hover:shadow-md transition-all"
               >
                 編集
               </button>
@@ -117,7 +117,7 @@ export default function Home() {
             {!isEditingVehicle && (
               <button
                 onClick={() => setIsEditingVehicle(true)}
-                className="text-sm text-accent hover:underline"
+                className="px-3 py-1 text-sm font-semibold bg-accent text-accent-foreground rounded-md hover:shadow-md transition-all"
               >
                 編集
               </button>

@@ -26,11 +26,12 @@ export default function DailyRecord() {
   });
 
   const [records, setRecords] = useState<DailyRecordData[]>([]);
+  const utils = trpc.useUtils();
 
 
   const { data: currentCycle } = trpc.vehicle.getCurrentCycle.useQuery();
   const addRecordMutation = trpc.vehicle.addRecord.useMutation();
-  const { data: initialRecords } = trpc.vehicle.getRecords.useQuery(
+  const { data: initialRecords, refetch } = trpc.vehicle.getRecords.useQuery(
     currentCycle?.id ? { cycleId: currentCycle.id } : { cycleId: 0 },
     { enabled: !!currentCycle?.id }
   );
@@ -63,10 +64,12 @@ export default function DailyRecord() {
     if (
       !todayRecord.departureTime ||
       !todayRecord.arrivalTime ||
+      isNaN(depDistLocal) ||
+      isNaN(arrDistLocal) ||
       depDistLocal < 0 ||
       arrDistLocal < 0
     ) {
-      alert("すべての項目を入力してください");
+      alert("すべての項目を正しく入力してください");
       return;
     }
 
@@ -76,9 +79,20 @@ export default function DailyRecord() {
     }
 
     try {
+      const recordDateStr = typeof todayRecord.recordDate === 'string' ? todayRecord.recordDate : todayRecord.recordDate.toISOString().split('T')[0];
+      
+      console.log('Sending record:', {
+        cycleId: currentCycle.id,
+        recordDate: recordDateStr,
+        departureTime: todayRecord.departureTime,
+        arrivalTime: todayRecord.arrivalTime,
+        departureDistance: depDistLocal,
+        arrivalDistance: arrDistLocal,
+      });
+      
       await addRecordMutation.mutateAsync({
         cycleId: currentCycle.id,
-        recordDate: typeof todayRecord.recordDate === 'string' ? todayRecord.recordDate : todayRecord.recordDate.toISOString().split('T')[0],
+        recordDate: recordDateStr,
         departureTime: todayRecord.departureTime,
         arrivalTime: todayRecord.arrivalTime,
         departureDistance: depDistLocal,
@@ -94,12 +108,12 @@ export default function DailyRecord() {
         arrivalDistance: 0,
       });
 
-      // Refetch records
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Reload records
+      await refetch();
       alert("記録を保存しました");
     } catch (error) {
       console.error("Failed to add record:", error);
-      alert("記録の保存に失敗しました");
+      alert("記録の保存に失敗しました: " + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -202,18 +216,18 @@ export default function DailyRecord() {
               </div>
 
               {/* Today's Total Distance */}
-              <div className="bg-muted rounded-lg p-4 mt-6">
-                <p className="text-sm text-muted-foreground mb-1">本日の走行距離</p>
-                <p className="text-3xl font-bold text-accent">{todayDistance.toFixed(1)} km</p>
-              </div>
+            <div className="bg-accent/10 border-2 border-accent rounded-lg p-4 mt-6">
+              <p className="text-sm text-muted-foreground mb-1">本日の走行距離</p>
+              <p className="text-3xl font-bold text-accent">{todayDistance.toFixed(1)} km</p>
+            </div>
 
               {/* Add Button */}
               <button
                 onClick={handleAddRecord}
                 disabled={addRecordMutation.isPending}
-                className="btn-primary w-full mt-6 flex items-center justify-center gap-2"
+                className="w-full mt-6 px-4 py-3 bg-accent text-accent-foreground font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                <Plus className="h-5 w-5" />
+                <Plus className="h-6 w-6" />
                 {addRecordMutation.isPending ? "保存中..." : "記録を保存"}
               </button>
             </div>
