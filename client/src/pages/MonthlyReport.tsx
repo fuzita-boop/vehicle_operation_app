@@ -210,18 +210,14 @@ export default function MonthlyReport() {
           印刷
         </button>
 
-        <Link href="/daily-record">
-          <a className="btn-secondary flex items-center gap-2">
-            <ArrowLeft className="h-5 w-5" />
-            日次記録に戻る
-          </a>
+        <Link href="/daily-record" className="btn-secondary flex items-center gap-2">
+          <ArrowLeft className="h-5 w-5" />
+          日次記録に戻る
         </Link>
 
-        <Link href="/">
-          <a className="btn-secondary flex items-center gap-2">
-            <ArrowLeft className="h-5 w-5" />
-            ホームに戻る
-          </a>
+        <Link href="/" className="btn-secondary flex items-center gap-2">
+          <ArrowLeft className="h-5 w-5" />
+          ホームに戻る
         </Link>
       </div>
     </VehicleLayout>
