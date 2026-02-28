@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import VehicleLayout from "@/components/VehicleLayout";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
-import { ArrowLeft, Printer } from "lucide-react";
+import { ArrowLeft, Printer, FileDown, ImageDown, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface ReportRecord {
   id?: number;
@@ -24,6 +25,9 @@ export default function MonthlyReport() {
     start: "",
     end: "",
   });
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   const { data: currentCycle } = trpc.vehicle.getCurrentCycle.useQuery();
   const { data: driver } = trpc.vehicle.getDriver.useQuery();
@@ -92,10 +96,96 @@ export default function MonthlyReport() {
     return sum + calculateDistance(depDist, arrDist);
   }, 0);
 
+  const getFileName = useCallback(() => {
+    const period = cycleInfo.start && cycleInfo.end
+      ? `${cycleInfo.start}-${cycleInfo.end}`.replace(/\//g, "")
+      : new Date().toISOString().split("T")[0];
+    return `車両運行日報_${driverName || "未設定"}_${period}`;
+  }, [cycleInfo, driverName]);
+
+  const handleDownloadPdf = useCallback(async () => {
+    if (!reportRef.current) return;
+    setIsGeneratingPdf(true);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const { jsPDF } = await import("jspdf");
+
+      const element = reportRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+
+      // A4 dimensions in mm
+      const a4Width = 210;
+      const a4Height = 297;
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const imgWidth = a4Width;
+      const imgHeight = (canvas.height * a4Width) / canvas.width;
+
+      // Scale to fit A4 if needed
+      if (imgHeight > a4Height) {
+        const scale = a4Height / imgHeight;
+        const scaledWidth = imgWidth * scale;
+        const offsetX = (a4Width - scaledWidth) / 2;
+        pdf.addImage(imgData, "PNG", offsetX, 0, scaledWidth, a4Height);
+      } else {
+        pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      }
+
+      pdf.save(`${getFileName()}.pdf`);
+      toast.success("PDFをダウンロードしました");
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      toast.error("PDF生成に失敗しました");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  }, [getFileName]);
+
+  const handleDownloadImage = useCallback(async () => {
+    if (!reportRef.current) return;
+    setIsGeneratingImage(true);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+
+      const element = reportRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+
+      const link = document.createElement("a");
+      link.download = `${getFileName()}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      toast.success("画像をダウンロードしました");
+    } catch (error) {
+      console.error("Image generation error:", error);
+      toast.error("画像生成に失敗しました");
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  }, [getFileName]);
+
   return (
     <VehicleLayout title="月次レポート" subtitle="1ヶ月分の運行記録">
       {/* Print Container */}
-      <div className="print-container bg-white p-8 rounded-lg border border-border shadow-sm">
+      <div
+        ref={reportRef}
+        className="print-container bg-white p-8 rounded-lg border border-border shadow-sm"
+      >
         {/* Header */}
         <div className="mb-3 border-b-2 border-black pb-2">
           <h1 className="text-xl font-bold text-center mb-1">車両運行日報</h1>
@@ -142,40 +232,48 @@ export default function MonthlyReport() {
               </tr>
             </thead>
             <tbody>
-              {records.map((record, idx) => {
-                const depDist =
-                  typeof record.departureDistance === "string"
-                    ? parseFloat(record.departureDistance)
-                    : record.departureDistance;
-                const arrDist =
-                  typeof record.arrivalDistance === "string"
-                    ? parseFloat(record.arrivalDistance)
-                    : record.arrivalDistance;
-                const distance = calculateDistance(depDist, arrDist);
+              {records.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="border border-black px-2 py-8 text-xs text-center text-muted-foreground">
+                    記録がありません
+                  </td>
+                </tr>
+              ) : (
+                records.map((record, idx) => {
+                  const depDist =
+                    typeof record.departureDistance === "string"
+                      ? parseFloat(record.departureDistance)
+                      : record.departureDistance;
+                  const arrDist =
+                    typeof record.arrivalDistance === "string"
+                      ? parseFloat(record.arrivalDistance)
+                      : record.arrivalDistance;
+                  const distance = calculateDistance(depDist, arrDist);
 
-                return (
-                  <tr key={idx}>
-                    <td className="border border-black px-2 py-1 text-xs">
-                      {new Date(record.recordDate).toLocaleDateString("ja-JP")}
-                    </td>
-                    <td className="border border-black px-2 py-1 text-xs text-center">
-                      {record.departureTime}
-                    </td>
-                    <td className="border border-black px-2 py-1 text-xs text-center">
-                      {record.arrivalTime}
-                    </td>
-                    <td className="border border-black px-2 py-1 text-xs text-right">
-                      {depDist.toFixed(1)}
-                    </td>
-                    <td className="border border-black px-2 py-1 text-xs text-right">
-                      {arrDist.toFixed(1)}
-                    </td>
-                    <td className="border border-black px-2 py-1 text-xs text-right font-semibold">
-                      {distance.toFixed(1)}
-                    </td>
-                  </tr>
-                );
-              })}
+                  return (
+                    <tr key={idx}>
+                      <td className="border border-black px-2 py-1 text-xs">
+                        {new Date(record.recordDate).toLocaleDateString("ja-JP")}
+                      </td>
+                      <td className="border border-black px-2 py-1 text-xs text-center">
+                        {record.departureTime}
+                      </td>
+                      <td className="border border-black px-2 py-1 text-xs text-center">
+                        {record.arrivalTime}
+                      </td>
+                      <td className="border border-black px-2 py-1 text-xs text-right">
+                        {depDist.toFixed(1)}
+                      </td>
+                      <td className="border border-black px-2 py-1 text-xs text-right">
+                        {arrDist.toFixed(1)}
+                      </td>
+                      <td className="border border-black px-2 py-1 text-xs text-right font-semibold">
+                        {distance.toFixed(1)}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -201,24 +299,50 @@ export default function MonthlyReport() {
       </div>
 
       {/* Action Buttons */}
-      <div className="mt-8 flex gap-4 no-print">
-        <button
-          onClick={() => window.print()}
-          className="btn-primary flex items-center gap-2"
-        >
-          <Printer className="h-5 w-5" />
-          印刷
-        </button>
+      <div className="mt-8 no-print">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <button
+            onClick={() => window.print()}
+            className="btn-primary flex items-center justify-center gap-2 py-3"
+          >
+            <Printer className="h-5 w-5" />
+            印刷
+          </button>
 
-        <Link href="/daily-record" className="btn-secondary flex items-center gap-2">
-          <ArrowLeft className="h-5 w-5" />
-          日次記録に戻る
-        </Link>
+          <button
+            onClick={handleDownloadPdf}
+            disabled={isGeneratingPdf}
+            className="btn-primary flex items-center justify-center gap-2 py-3 bg-red-600 hover:bg-red-700 text-white"
+          >
+            {isGeneratingPdf ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <FileDown className="h-5 w-5" />
+            )}
+            {isGeneratingPdf ? "生成中..." : "PDF"}
+          </button>
 
-        <Link href="/" className="btn-secondary flex items-center gap-2">
-          <ArrowLeft className="h-5 w-5" />
-          ホームに戻る
-        </Link>
+          <button
+            onClick={handleDownloadImage}
+            disabled={isGeneratingImage}
+            className="btn-primary flex items-center justify-center gap-2 py-3 bg-green-600 hover:bg-green-700 text-white"
+          >
+            {isGeneratingImage ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <ImageDown className="h-5 w-5" />
+            )}
+            {isGeneratingImage ? "生成中..." : "画像"}
+          </button>
+
+          <Link
+            href="/"
+            className="btn-secondary flex items-center justify-center gap-2 py-3"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            ホーム
+          </Link>
+        </div>
       </div>
     </VehicleLayout>
   );
