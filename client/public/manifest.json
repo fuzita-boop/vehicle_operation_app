@@ -1,0 +1,18 @@
+{
+  "name": "車両運行日報",
+  "short_name": "運行日報",
+  "description": "車両運行日報管理アプリ - 毎日の走行記録を簡単に管理",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e3a5f",
+  "theme_color": "#1e3a5f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663217122276/megdFLwq3PKkC44ndRH8R7/app-icon-512-fJTgq7ih4EqDhMWmywUkcj.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -103,8 +103,8 @@ export default function Home() {
             </div>
           ) : (
             <div className="text-center py-4">
-              <p className="text-2xl font-bold text-accent">
-                {driverName || "未設定"}
+              <p className="text-2xl font-bold text-foreground">
+                {driverName || <span className="text-muted-foreground">未設定</span>}
               </p>
             </div>
           )}
@@ -154,8 +154,8 @@ export default function Home() {
             </div>
           ) : (
             <div className="text-center py-4">
-              <p className="text-2xl font-bold text-accent">
-                {vehicleNumber || "未設定"}
+              <p className="text-2xl font-bold text-foreground">
+                {vehicleNumber || <span className="text-muted-foreground">未設定</span>}
               </p>
             </div>
           )}
@@ -180,24 +180,20 @@ export default function Home() {
 
       {/* Action Buttons */}
       <div className="mt-8 grid gap-4 md:grid-cols-2">
-        <Link href="/daily-record">
-          <a className="card-elegant text-center py-8 hover:shadow-lg transition-all cursor-pointer">
-            <Plus className="h-8 w-8 text-accent mx-auto mb-2" />
-            <h3 className="text-lg font-semibold text-foreground">本日の記録を入力</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              出発時間・終了時間・走行距離を記録
-            </p>
-          </a>
+        <Link href="/daily-record" className="card-elegant text-center py-8 hover:shadow-lg transition-all cursor-pointer block">
+          <Plus className="h-8 w-8 text-accent mx-auto mb-2" />
+          <h3 className="text-lg font-semibold text-foreground">本日の記録を入力</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            出発時間・終了時間・走行距離を記録
+          </p>
         </Link>
 
-        <Link href="/monthly-report">
-          <a className="card-elegant text-center py-8 hover:shadow-lg transition-all cursor-pointer">
-            <FileText className="h-8 w-8 text-accent mx-auto mb-2" />
-            <h3 className="text-lg font-semibold text-foreground">月次レポート</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              1ヶ月分の記録を表示・印刷
-            </p>
-          </a>
+        <Link href="/monthly-report" className="card-elegant text-center py-8 hover:shadow-lg transition-all cursor-pointer block">
+          <FileText className="h-8 w-8 text-accent mx-auto mb-2" />
+          <h3 className="text-lg font-semibold text-foreground">月次レポート</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            1ヶ月分の記録を表示・印刷
+          </p>
         </Link>
       </div>
     </VehicleLayout>
