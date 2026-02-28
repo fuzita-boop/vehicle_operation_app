@@ -185,11 +185,12 @@ export default function DailyRecord() {
                 <input
                   type="number"
                   step="0.1"
-                  value={depDist}
+                  value={depDist === 0 ? "" : depDist}
+                  placeholder="0"
                   onChange={(e) =>
                     setTodayRecord({
                       ...todayRecord,
-                      departureDistance: parseFloat(e.target.value) || 0,
+                      departureDistance: e.target.value === "" ? 0 : parseFloat(e.target.value) || 0,
                     })
                   }
                   className="input-elegant"
@@ -204,11 +205,12 @@ export default function DailyRecord() {
                 <input
                   type="number"
                   step="0.1"
-                  value={arrDist}
+                  value={arrDist === 0 ? "" : arrDist}
+                  placeholder="0"
                   onChange={(e) =>
                     setTodayRecord({
                       ...todayRecord,
-                      arrivalDistance: parseFloat(e.target.value) || 0,
+                      arrivalDistance: e.target.value === "" ? 0 : parseFloat(e.target.value) || 0,
                     })
                   }
                   className="input-elegant"

@@ -149,16 +149,20 @@
   }
 
   .print-container {
-    @apply w-full max-w-[210mm] mx-auto bg-white p-8;
+    @apply w-full max-w-[210mm] mx-auto bg-white p-4;
+    height: 297mm;
+    display: flex;
+    flex-direction: column;
   }
 
   .print-table {
-    @apply w-full border-collapse;
+    @apply w-full border-collapse text-xs;
+    font-size: 10px;
   }
 
   .print-table th,
   .print-table td {
-    @apply border border-black px-2 py-1 text-xs;
+    @apply border border-black px-1 py-0.5;
   }
 
   .print-table th {

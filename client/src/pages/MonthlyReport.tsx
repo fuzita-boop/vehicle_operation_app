@@ -97,19 +97,19 @@ export default function MonthlyReport() {
       {/* Print Container */}
       <div className="print-container bg-white p-8 rounded-lg border border-border shadow-sm">
         {/* Header */}
-        <div className="mb-8 border-b-2 border-black pb-4">
-          <h1 className="text-3xl font-bold text-center mb-2">車両運行日報</h1>
-          <div className="grid grid-cols-2 gap-8 text-sm">
+        <div className="mb-3 border-b-2 border-black pb-2">
+          <h1 className="text-xl font-bold text-center mb-1">車両運行日報</h1>
+          <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
               <p className="text-muted-foreground">運転者名</p>
-              <p className="text-lg font-semibold">{driverName || "-"}</p>
+              <p className="font-semibold">{driverName || "-"}</p>
             </div>
             <div>
               <p className="text-muted-foreground">車両番号</p>
-              <p className="text-lg font-semibold">{vehicleNumber || "-"}</p>
+              <p className="font-semibold">{vehicleNumber || "-"}</p>
             </div>
           </div>
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-1 text-center text-xs">
             <p className="text-muted-foreground">
               対象期間: {cycleInfo.start} 〜 {cycleInfo.end}
             </p>
@@ -117,7 +117,7 @@ export default function MonthlyReport() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto mb-8">
+        <div className="overflow-x-auto mb-3 flex-1">
           <table className="print-table w-full border-collapse">
             <thead>
               <tr>
@@ -181,21 +181,21 @@ export default function MonthlyReport() {
         </div>
 
         {/* Total Section */}
-        <div className="border-t-2 border-black pt-4">
-          <div className="grid grid-cols-2 gap-8">
+        <div className="border-t-2 border-black pt-2">
+          <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
-              <p className="text-sm text-muted-foreground">記録日数</p>
-              <p className="text-2xl font-bold">{records.length}</p>
+              <p className="text-muted-foreground">記録日数</p>
+              <p className="text-lg font-bold">{records.length}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">総走行距離</p>
-              <p className="text-2xl font-bold">{totalDistance.toFixed(1)} km</p>
+              <p className="text-muted-foreground">総走行距離</p>
+              <p className="text-lg font-bold">{totalDistance.toFixed(1)} km</p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-8 pt-4 border-t border-gray-300 text-xs text-muted-foreground text-center">
+        <div className="mt-2 pt-2 border-t border-gray-300 text-xs text-muted-foreground text-center">
           <p>印刷日: {new Date().toLocaleDateString("ja-JP")}</p>
         </div>
       </div>
