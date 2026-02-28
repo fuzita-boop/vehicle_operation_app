@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, drivers, vehicles, monthlyCycles, dailyRecords } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,135 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+/**
+ * 運転者情報の取得または作成
+ */
+export async function getOrCreateDriver(userId: number, driverName: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await db
+    .select()
+    .from(drivers)
+    .where(eq(drivers.userId, userId))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return existing[0];
+  }
+
+  const result = await db.insert(drivers).values({ userId, driverName });
+  return { id: result[0].insertId, userId, driverName, createdAt: new Date(), updatedAt: new Date() };
+}
+
+/**
+ * 車両情報の取得または作成
+ */
+export async function getOrCreateVehicle(userId: number, vehicleNumber: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await db
+    .select()
+    .from(vehicles)
+    .where(eq(vehicles.userId, userId))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return existing[0];
+  }
+
+  const result = await db.insert(vehicles).values({ userId, vehicleNumber });
+  return { id: result[0].insertId, userId, vehicleNumber, createdAt: new Date(), updatedAt: new Date() };
+}
+
+/**
+ * 月次サイクルの取得または作成
+ */
+export async function getOrCreateMonthlyCycle(userId: number, driverId: number, vehicleId: number, cycleStartDate: Date, cycleEndDate: Date) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await db
+    .select()
+    .from(monthlyCycles)
+    .where(
+      and(
+        eq(monthlyCycles.userId, userId),
+        eq(monthlyCycles.driverId, driverId),
+        eq(monthlyCycles.vehicleId, vehicleId),
+        eq(monthlyCycles.cycleStartDate, cycleStartDate),
+        eq(monthlyCycles.cycleEndDate, cycleEndDate)
+      )
+    )
+    .limit(1);
+
+  if (existing.length > 0) {
+    return existing[0];
+  }
+
+  const result = await db.insert(monthlyCycles).values({
+    userId,
+    driverId,
+    vehicleId,
+    cycleStartDate,
+    cycleEndDate,
+  });
+  return { id: result[0].insertId, userId, driverId, vehicleId, cycleStartDate, cycleEndDate, createdAt: new Date(), updatedAt: new Date() };
+}
+
+/**
+ * 日次記録の追加
+ */
+export async function addDailyRecord(
+  cycleId: number,
+  recordDate: Date,
+  departureTime: string,
+  arrivalTime: string,
+  departureDistance: number,
+  arrivalDistance: number
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(dailyRecords).values({
+    cycleId,
+    recordDate,
+    departureTime,
+    arrivalTime,
+    departureDistance: departureDistance.toString(),
+    arrivalDistance: arrivalDistance.toString(),
+  });
+
+  return result[0];
+}
+
+/**
+ * 月次サイクル内の日次記録を取得
+ */
+export async function getDailyRecordsByCycle(cycleId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.select().from(dailyRecords).where(eq(dailyRecords.cycleId, cycleId));
+}
+
+/**
+ * 運転者情報を更新
+ */
+export async function updateDriver(driverId: number, driverName: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.update(drivers).set({ driverName }).where(eq(drivers.id, driverId));
+}
+
+/**
+ * 車両情報を更新
+ */
+export async function updateVehicle(vehicleId: number, vehicleNumber: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.update(vehicles).set({ vehicleNumber }).where(eq(vehicles.id, vehicleId));
+}

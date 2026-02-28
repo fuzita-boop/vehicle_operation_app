@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -17,12 +17,76 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  vehicle: router({
+    getDriver: protectedProcedure.query(async ({ ctx }) => {
+      const { getOrCreateDriver } = await import("./db");
+      return await getOrCreateDriver(ctx.user.id, "");
+    }),
+    setDriver: protectedProcedure.input((val: any) => val as { driverName: string }).mutation(async ({ ctx, input }) => {
+      const { getOrCreateDriver, updateDriver } = await import("./db");
+      const existing = await getOrCreateDriver(ctx.user.id, input.driverName);
+      if (existing.id) {
+        await updateDriver(existing.id, input.driverName);
+      }
+      return { success: true, driverId: existing.id };
+    }),
+    getVehicle: protectedProcedure.query(async ({ ctx }) => {
+      const { getOrCreateVehicle } = await import("./db");
+      return await getOrCreateVehicle(ctx.user.id, "");
+    }),
+    setVehicle: protectedProcedure.input((val: any) => val as { vehicleNumber: string }).mutation(async ({ ctx, input }) => {
+      const { getOrCreateVehicle, updateVehicle } = await import("./db");
+      const existing = await getOrCreateVehicle(ctx.user.id, input.vehicleNumber);
+      if (existing.id) {
+        await updateVehicle(existing.id, input.vehicleNumber);
+      }
+      return { success: true, vehicleId: existing.id };
+    }),
+    getCurrentCycle: protectedProcedure.query(async ({ ctx }) => {
+      const { getOrCreateDriver, getOrCreateVehicle, getOrCreateMonthlyCycle } = await import("./db");
+      const driver = await getOrCreateDriver(ctx.user.id, "");
+      const vehicle = await getOrCreateVehicle(ctx.user.id, "");
+      
+      if (!driver.id || !vehicle.id) return null;
+      
+      const today = new Date();
+      const day = today.getDate();
+      let cycleStart, cycleEnd;
+      
+      if (day >= 16) {
+        cycleStart = new Date(today.getFullYear(), today.getMonth(), 16);
+        cycleEnd = new Date(today.getFullYear(), today.getMonth() + 1, 15);
+      } else {
+        cycleStart = new Date(today.getFullYear(), today.getMonth() - 1, 16);
+        cycleEnd = new Date(today.getFullYear(), today.getMonth(), 15);
+      }
+      
+      return await getOrCreateMonthlyCycle(ctx.user.id, driver.id, vehicle.id, cycleStart, cycleEnd);
+    }),
+    addRecord: protectedProcedure.input((val: any) => val as {
+      cycleId: number;
+      recordDate: string;
+      departureTime: string;
+      arrivalTime: string;
+      departureDistance: number;
+      arrivalDistance: number;
+    }).mutation(async ({ input }) => {
+      const { addDailyRecord } = await import("./db");
+      const recordDate = new Date(input.recordDate);
+      return await addDailyRecord(
+        input.cycleId,
+        recordDate,
+        input.departureTime,
+        input.arrivalTime,
+        input.departureDistance,
+        input.arrivalDistance
+      );
+    }),
+    getRecords: protectedProcedure.input((val: any) => val as { cycleId: number }).query(async ({ input }) => {
+      const { getDailyRecordsByCycle } = await import("./db");
+      return await getDailyRecordsByCycle(input.cycleId);
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

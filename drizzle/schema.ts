@@ -1,17 +1,10 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, date } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
  */
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
@@ -25,4 +18,69 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+/**
+ * 運転者テーブル
+ * 各ユーザーが登録した運転者情報を保持
+ */
+export const drivers = mysqlTable("drivers", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  driverName: varchar("driverName", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Driver = typeof drivers.$inferSelect;
+export type InsertDriver = typeof drivers.$inferInsert;
+
+/**
+ * 車両テーブル
+ * 各ユーザーが登録した車両情報を保持
+ */
+export const vehicles = mysqlTable("vehicles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  vehicleNumber: varchar("vehicleNumber", { length: 255 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Vehicle = typeof vehicles.$inferSelect;
+export type InsertVehicle = typeof vehicles.$inferInsert;
+
+/**
+ * 月次サイクルテーブル
+ * 毎月16日〜翌15日のサイクルを管理
+ */
+export const monthlyCycles = mysqlTable("monthlyCycles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  driverId: int("driverId").notNull(),
+  vehicleId: int("vehicleId").notNull(),
+  cycleStartDate: date("cycleStartDate").notNull(), // 16日
+  cycleEndDate: date("cycleEndDate").notNull(), // 翌月15日
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MonthlyCycle = typeof monthlyCycles.$inferSelect;
+export type InsertMonthlyCycle = typeof monthlyCycles.$inferInsert;
+
+/**
+ * 日次記録テーブル
+ * 毎日の運行記録（出発時間、終了時間、走行距離）を保持
+ */
+export const dailyRecords = mysqlTable("dailyRecords", {
+  id: int("id").autoincrement().primaryKey(),
+  cycleId: int("cycleId").notNull(),
+  recordDate: date("recordDate").notNull(),
+  departureTime: varchar("departureTime", { length: 5 }).notNull(), // HH:MM形式
+  arrivalTime: varchar("arrivalTime", { length: 5 }).notNull(), // HH:MM形式
+  departureDistance: decimal("departureDistance", { precision: 10, scale: 1 }).notNull(), // 出発時走行距離
+  arrivalDistance: decimal("arrivalDistance", { precision: 10, scale: 1 }).notNull(), // 到着時走行距離
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DailyRecord = typeof dailyRecords.$inferSelect;
+export type InsertDailyRecord = typeof dailyRecords.$inferInsert;

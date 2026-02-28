@@ -119,6 +119,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: "Noto Sans JP", "Poppins", sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Poppins", "Noto Sans JP", sans-serif;
+    font-weight: 600;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -130,6 +135,39 @@
   input[type="checkbox"]:not(:disabled),
   input[type="radio"]:not(:disabled) {
     @apply cursor-pointer;
+  }
+}
+
+/* Print styles for A4 */
+@media print {
+  body {
+    @apply bg-white text-black;
+  }
+
+  .no-print {
+    @apply hidden;
+  }
+
+  .print-container {
+    @apply w-full max-w-[210mm] mx-auto bg-white p-8;
+  }
+
+  .print-table {
+    @apply w-full border-collapse;
+  }
+
+  .print-table th,
+  .print-table td {
+    @apply border border-black px-2 py-1 text-xs;
+  }
+
+  .print-table th {
+    @apply bg-gray-200 font-bold;
+  }
+
+  @page {
+    size: A4;
+    margin: 0.5cm;
   }
 }
 
@@ -173,5 +211,42 @@
       padding-right: 2rem;
       max-width: 1280px; /* Standard content width */
     }
+  }
+
+  /* Elegant components */
+  .card-elegant {
+    @apply rounded-xl border border-border bg-card p-6 shadow-sm transition-all hover:shadow-md;
+  }
+
+  .input-elegant {
+    @apply w-full rounded-lg border border-input bg-background px-4 py-2 font-medium text-foreground placeholder-muted-foreground transition-all focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20;
+  }
+
+  .btn-primary {
+    @apply rounded-lg bg-accent px-4 py-2 font-medium text-accent-foreground shadow-md transition-all hover:shadow-lg hover:opacity-90;
+  }
+
+  .btn-secondary {
+    @apply rounded-lg border border-border bg-card px-4 py-2 font-medium text-foreground shadow-sm transition-all hover:bg-muted;
+  }
+
+  .table-elegant {
+    @apply w-full border-collapse rounded-lg border border-border overflow-hidden;
+  }
+
+  .table-elegant thead {
+    @apply bg-muted;
+  }
+
+  .table-elegant th {
+    @apply border-b border-border px-4 py-3 text-left font-semibold text-foreground;
+  }
+
+  .table-elegant td {
+    @apply border-b border-border px-4 py-3 text-foreground;
+  }
+
+  .table-elegant tbody tr:hover {
+    @apply bg-muted/50;
   }
 }
