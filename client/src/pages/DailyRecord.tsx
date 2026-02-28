@@ -293,11 +293,9 @@ export default function DailyRecord() {
 
       {/* Navigation */}
       <div className="mt-8 flex gap-4">
-        <Link href="/">
-          <a className="btn-secondary flex items-center gap-2">
-            <ArrowLeft className="h-5 w-5" />
-            ホームに戻る
-          </a>
+        <Link href="/" className="btn-secondary flex items-center gap-2">
+          <ArrowLeft className="h-5 w-5" />
+          ホームに戻る
         </Link>
       </div>
     </VehicleLayout>
