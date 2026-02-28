@@ -59,3 +59,9 @@
 - [x] jsPDFライブラリの導入
 - [x] 月次レポートのPDFダウンロードボタン追加
 - [x] 月次レポートの画像（PNG）ダウンロードボタン追加
+
+## Phase 10: 文字色改善・不要機能削除
+- [x] 本日の走行距離表示の文字色を濃くする（DailyRecordページ）
+- [x] PDF出力ボタンを削除（MonthlyReportページ）
+- [x] 画像出力ボタンを削除（MonthlyReportページ）
+- [x] html2canvas/jsPDF関連コードを削除

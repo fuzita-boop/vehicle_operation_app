@@ -218,9 +218,9 @@ export default function DailyRecord() {
               </div>
 
               {/* Today's Total Distance */}
-            <div className="bg-accent/10 border-2 border-accent rounded-lg p-4 mt-6">
-              <p className="text-sm text-muted-foreground mb-1">本日の走行距離</p>
-              <p className="text-3xl font-bold text-accent">{todayDistance.toFixed(1)} km</p>
+            <div className="bg-blue-50 border-2 border-blue-600 rounded-lg p-4 mt-6">
+              <p className="text-sm font-medium mb-1" style={{ color: '#333' }}>本日の走行距離</p>
+              <p className="text-3xl font-bold" style={{ color: '#1d4ed8' }}>{todayDistance.toFixed(1)} km</p>
             </div>
 
               {/* Add Button */}
@@ -242,11 +242,11 @@ export default function DailyRecord() {
           <div className="space-y-3">
             <div>
               <p className="text-sm text-muted-foreground">記録数</p>
-              <p className="text-2xl font-bold text-accent">{records.length}</p>
+              <p className="text-2xl font-bold" style={{ color: '#1d4ed8' }}>{records.length}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">総走行距離</p>
-              <p className="text-2xl font-bold text-accent">{totalDistance.toFixed(1)} km</p>
+              <p className="text-2xl font-bold" style={{ color: '#1d4ed8' }}>{totalDistance.toFixed(1)} km</p>
             </div>
           </div>
         </div>
@@ -279,7 +279,7 @@ export default function DailyRecord() {
                     <td>{record.arrivalTime}</td>
                     <td>{depDist.toFixed(1)} km</td>
                     <td>{arrDist.toFixed(1)} km</td>
-                    <td className="font-semibold text-accent">
+                    <td className="font-semibold" style={{ color: '#1d4ed8' }}>
                       {calculateDistance(depDist, arrDist).toFixed(1)} km
                     </td>
                   </tr>
