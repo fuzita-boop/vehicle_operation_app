@@ -4,6 +4,29 @@ import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
 import { ArrowLeft, Plus, Pencil, Trash2, Check, X } from "lucide-react";
 
+/** Convert any date value to YYYY-MM-DD string in local timezone */
+function toDateString(val: string | Date | unknown): string {
+  if (!val) return new Date().toISOString().split('T')[0];
+  if (val instanceof Date) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  const str = String(val);
+  // If already YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  // If ISO string like "2026-02-28T15:00:00.000Z"
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const d = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return str;
+}
+
 interface DailyRecordData {
   id?: number;
   recordDate: string | Date;
@@ -42,7 +65,7 @@ export default function DailyRecord() {
     if (initialRecords && currentCycle?.id) {
       setRecords(initialRecords.map(r => ({
         ...r,
-        recordDate: r.recordDate instanceof Date ? r.recordDate.toISOString().split('T')[0] : r.recordDate,
+        recordDate: toDateString(r.recordDate),
         departureDistance: typeof r.departureDistance === 'string' ? parseFloat(r.departureDistance) : r.departureDistance,
         arrivalDistance: typeof r.arrivalDistance === 'string' ? parseFloat(r.arrivalDistance) : r.arrivalDistance,
       })));
@@ -109,9 +132,7 @@ export default function DailyRecord() {
   const handleStartEdit = (record: DailyRecordData) => {
     if (!record.id) return;
     setEditingId(record.id);
-    const dateStr = typeof record.recordDate === 'string'
-      ? record.recordDate
-      : record.recordDate.toISOString().split('T')[0];
+    const dateStr = toDateString(record.recordDate);
     setEditForm({
       ...record,
       recordDate: dateStr,
@@ -137,7 +158,7 @@ export default function DailyRecord() {
     }
 
     try {
-      const recordDateStr = typeof editForm.recordDate === 'string' ? editForm.recordDate : editForm.recordDate.toISOString().split('T')[0];
+      const recordDateStr = toDateString(editForm.recordDate);
       await updateRecordMutation.mutateAsync({
         recordId: editingId,
         recordDate: recordDateStr,
@@ -324,8 +345,11 @@ export default function DailyRecord() {
                         <label className="block text-xs font-medium mb-1" style={{ color: '#555' }}>記録日</label>
                         <input
                           type="date"
-                          value={typeof editForm.recordDate === 'string' ? editForm.recordDate : ''}
-                          onChange={(e) => setEditForm({ ...editForm, recordDate: e.target.value })}
+                          value={toDateString(editForm.recordDate)}
+                          onChange={(e) => {
+                            const newDate = e.target.value;
+                            setEditForm(prev => prev ? { ...prev, recordDate: newDate } : prev);
+                          }}
                           className="input-elegant text-sm"
                         />
                       </div>
