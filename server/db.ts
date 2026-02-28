@@ -221,3 +221,39 @@ export async function updateVehicle(vehicleId: number, vehicleNumber: string) {
 
   return await db.update(vehicles).set({ vehicleNumber }).where(eq(vehicles.id, vehicleId));
 }
+
+/**
+ * 日次記録を更新
+ */
+export async function updateDailyRecord(
+  recordId: number,
+  data: {
+    recordDate?: Date;
+    departureTime?: string;
+    arrivalTime?: string;
+    departureDistance?: number;
+    arrivalDistance?: number;
+  }
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const updateSet: Record<string, unknown> = {};
+  if (data.recordDate !== undefined) updateSet.recordDate = data.recordDate;
+  if (data.departureTime !== undefined) updateSet.departureTime = data.departureTime;
+  if (data.arrivalTime !== undefined) updateSet.arrivalTime = data.arrivalTime;
+  if (data.departureDistance !== undefined) updateSet.departureDistance = data.departureDistance.toString();
+  if (data.arrivalDistance !== undefined) updateSet.arrivalDistance = data.arrivalDistance.toString();
+
+  return await db.update(dailyRecords).set(updateSet).where(eq(dailyRecords.id, recordId));
+}
+
+/**
+ * 日次記録を削除
+ */
+export async function deleteDailyRecord(recordId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.delete(dailyRecords).where(eq(dailyRecords.id, recordId));
+}

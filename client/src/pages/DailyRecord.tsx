@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import VehicleLayout from "@/components/VehicleLayout";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, Check, X } from "lucide-react";
 
 interface DailyRecordData {
   id?: number;
@@ -26,17 +26,17 @@ export default function DailyRecord() {
   });
 
   const [records, setRecords] = useState<DailyRecordData[]>([]);
-  const utils = trpc.useUtils();
-
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<DailyRecordData | null>(null);
 
   const { data: currentCycle } = trpc.vehicle.getCurrentCycle.useQuery();
   const addRecordMutation = trpc.vehicle.addRecord.useMutation();
+  const updateRecordMutation = trpc.vehicle.updateRecord.useMutation();
+  const deleteRecordMutation = trpc.vehicle.deleteRecord.useMutation();
   const { data: initialRecords, refetch } = trpc.vehicle.getRecords.useQuery(
     currentCycle?.id ? { cycleId: currentCycle.id } : { cycleId: 0 },
     { enabled: !!currentCycle?.id }
   );
-
-
 
   useEffect(() => {
     if (initialRecords && currentCycle?.id) {
@@ -81,15 +81,6 @@ export default function DailyRecord() {
     try {
       const recordDateStr = typeof todayRecord.recordDate === 'string' ? todayRecord.recordDate : todayRecord.recordDate.toISOString().split('T')[0];
       
-      console.log('Sending record:', {
-        cycleId: currentCycle.id,
-        recordDate: recordDateStr,
-        departureTime: todayRecord.departureTime,
-        arrivalTime: todayRecord.arrivalTime,
-        departureDistance: depDistLocal,
-        arrivalDistance: arrDistLocal,
-      });
-      
       await addRecordMutation.mutateAsync({
         cycleId: currentCycle.id,
         recordDate: recordDateStr,
@@ -99,7 +90,6 @@ export default function DailyRecord() {
         arrivalDistance: arrDistLocal,
       });
 
-      // Reset form
       setTodayRecord({
         recordDate: new Date().toISOString().split("T")[0],
         departureTime: "",
@@ -108,12 +98,73 @@ export default function DailyRecord() {
         arrivalDistance: 0,
       });
 
-      // Reload records
       await refetch();
       alert("記録を保存しました");
     } catch (error) {
       console.error("Failed to add record:", error);
       alert("記録の保存に失敗しました: " + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
+  const handleStartEdit = (record: DailyRecordData) => {
+    if (!record.id) return;
+    setEditingId(record.id);
+    const dateStr = typeof record.recordDate === 'string'
+      ? record.recordDate
+      : record.recordDate.toISOString().split('T')[0];
+    setEditForm({
+      ...record,
+      recordDate: dateStr,
+      departureDistance: typeof record.departureDistance === 'string' ? parseFloat(record.departureDistance) : record.departureDistance,
+      arrivalDistance: typeof record.arrivalDistance === 'string' ? parseFloat(record.arrivalDistance) : record.arrivalDistance,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditForm(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editForm || !editingId) return;
+
+    const depDistEdit = typeof editForm.departureDistance === 'string' ? parseFloat(editForm.departureDistance) : editForm.departureDistance;
+    const arrDistEdit = typeof editForm.arrivalDistance === 'string' ? parseFloat(editForm.arrivalDistance) : editForm.arrivalDistance;
+
+    if (!editForm.departureTime || !editForm.arrivalTime || isNaN(depDistEdit) || isNaN(arrDistEdit)) {
+      alert("すべての項目を正しく入力してください");
+      return;
+    }
+
+    try {
+      const recordDateStr = typeof editForm.recordDate === 'string' ? editForm.recordDate : editForm.recordDate.toISOString().split('T')[0];
+      await updateRecordMutation.mutateAsync({
+        recordId: editingId,
+        recordDate: recordDateStr,
+        departureTime: editForm.departureTime,
+        arrivalTime: editForm.arrivalTime,
+        departureDistance: depDistEdit,
+        arrivalDistance: arrDistEdit,
+      });
+      setEditingId(null);
+      setEditForm(null);
+      await refetch();
+      alert("記録を更新しました");
+    } catch (error) {
+      console.error("Failed to update record:", error);
+      alert("記録の更新に失敗しました: " + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
+  const handleDeleteRecord = async (recordId: number) => {
+    if (!confirm("この記録を削除してもよろしいですか？")) return;
+    try {
+      await deleteRecordMutation.mutateAsync({ recordId });
+      await refetch();
+      alert("記録を削除しました");
+    } catch (error) {
+      console.error("Failed to delete record:", error);
+      alert("記録の削除に失敗しました: " + (error instanceof Error ? error.message : String(error)));
     }
   };
 
@@ -132,56 +183,38 @@ export default function DailyRecord() {
             <h2 className="text-lg font-semibold text-foreground mb-6">本日の記録</h2>
 
             <div className="space-y-4">
-              {/* Date */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  記録日
-                </label>
+                <label className="block text-sm font-medium text-foreground mb-2">記録日</label>
                 <input
                   type="date"
                   value={typeof todayRecord.recordDate === 'string' ? todayRecord.recordDate : todayRecord.recordDate.toISOString().split('T')[0]}
-                  onChange={(e) =>
-                    setTodayRecord({ ...todayRecord, recordDate: e.target.value })
-                  }
+                  onChange={(e) => setTodayRecord({ ...todayRecord, recordDate: e.target.value })}
                   className="input-elegant"
                 />
               </div>
 
-              {/* Departure Time */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  出発時間
-                </label>
+                <label className="block text-sm font-medium text-foreground mb-2">出発時間</label>
                 <input
                   type="time"
                   value={todayRecord.departureTime}
-                  onChange={(e) =>
-                    setTodayRecord({ ...todayRecord, departureTime: e.target.value })
-                  }
+                  onChange={(e) => setTodayRecord({ ...todayRecord, departureTime: e.target.value })}
                   className="input-elegant"
                 />
               </div>
 
-              {/* Arrival Time */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  終了時間
-                </label>
+                <label className="block text-sm font-medium text-foreground mb-2">終了時間</label>
                 <input
                   type="time"
                   value={todayRecord.arrivalTime}
-                  onChange={(e) =>
-                    setTodayRecord({ ...todayRecord, arrivalTime: e.target.value })
-                  }
+                  onChange={(e) => setTodayRecord({ ...todayRecord, arrivalTime: e.target.value })}
                   className="input-elegant"
                 />
               </div>
 
-              {/* Departure Distance */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  出発時走行距離 (km)
-                </label>
+                <label className="block text-sm font-medium text-foreground mb-2">出発時走行距離 (km)</label>
                 <input
                   type="number"
                   step="0.1"
@@ -197,11 +230,8 @@ export default function DailyRecord() {
                 />
               </div>
 
-              {/* Arrival Distance */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  終了時走行距離 (km)
-                </label>
+                <label className="block text-sm font-medium text-foreground mb-2">終了時走行距離 (km)</label>
                 <input
                   type="number"
                   step="0.1"
@@ -217,13 +247,11 @@ export default function DailyRecord() {
                 />
               </div>
 
-              {/* Today's Total Distance */}
-            <div className="bg-blue-50 border-2 border-blue-600 rounded-lg p-4 mt-6">
-              <p className="text-sm font-medium mb-1" style={{ color: '#333' }}>本日の走行距離</p>
-              <p className="text-3xl font-bold" style={{ color: '#1d4ed8' }}>{todayDistance.toFixed(1)} km</p>
-            </div>
+              <div className="bg-blue-50 border-2 border-blue-600 rounded-lg p-4 mt-6">
+                <p className="text-sm font-medium mb-1" style={{ color: '#333' }}>本日の走行距離</p>
+                <p className="text-3xl font-bold" style={{ color: '#1d4ed8' }}>{todayDistance.toFixed(1)} km</p>
+              </div>
 
-              {/* Add Button */}
               <button
                 onClick={handleAddRecord}
                 disabled={addRecordMutation.isPending}
@@ -256,37 +284,160 @@ export default function DailyRecord() {
       {records.length > 0 && (
         <div className="mt-8">
           <h3 className="text-lg font-semibold text-foreground mb-4">記録一覧</h3>
-          <div className="overflow-x-auto">
-            <table className="table-elegant">
-              <thead>
-                <tr>
-                  <th>日付</th>
-                  <th>出発時間</th>
-                  <th>終了時間</th>
-                  <th>出発走行距離</th>
-                  <th>終了走行距離</th>
-                  <th>走行距離</th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.map((record, idx) => {
-                  const depDist = typeof record.departureDistance === 'string' ? parseFloat(record.departureDistance) : record.departureDistance;
-                  const arrDist = typeof record.arrivalDistance === 'string' ? parseFloat(record.arrivalDistance) : record.arrivalDistance;
-                  return (
-                  <tr key={idx}>
-                    <td>{new Date(record.recordDate).toLocaleDateString("ja-JP")}</td>
-                    <td>{record.departureTime}</td>
-                    <td>{record.arrivalTime}</td>
-                    <td>{depDist.toFixed(1)} km</td>
-                    <td>{arrDist.toFixed(1)} km</td>
-                    <td className="font-semibold" style={{ color: '#1d4ed8' }}>
-                      {calculateDistance(depDist, arrDist).toFixed(1)} km
-                    </td>
-                  </tr>
+          <div className="space-y-3">
+            {records.map((record, idx) => {
+              const rDepDist = typeof record.departureDistance === 'string' ? parseFloat(record.departureDistance) : record.departureDistance;
+              const rArrDist = typeof record.arrivalDistance === 'string' ? parseFloat(record.arrivalDistance) : record.arrivalDistance;
+              const isEditing = editingId === record.id;
+
+              if (isEditing && editForm) {
+                const eDepDist = typeof editForm.departureDistance === 'string' ? parseFloat(editForm.departureDistance) : editForm.departureDistance;
+                const eArrDist = typeof editForm.arrivalDistance === 'string' ? parseFloat(editForm.arrivalDistance) : editForm.arrivalDistance;
+                const editDistance = calculateDistance(eDepDist, eArrDist);
+
+                return (
+                  <div key={record.id || idx} className="card-elegant border-2 border-blue-400 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold" style={{ color: '#1d4ed8' }}>記録を編集中</h4>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleSaveEdit}
+                          disabled={updateRecordMutation.isPending}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium text-white transition-colors disabled:opacity-50"
+                          style={{ backgroundColor: '#16a34a' }}
+                        >
+                          <Check className="h-4 w-4" />
+                          {updateRecordMutation.isPending ? "保存中..." : "保存"}
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium text-white transition-colors"
+                          style={{ backgroundColor: '#6b7280' }}
+                        >
+                          <X className="h-4 w-4" />
+                          取消
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: '#555' }}>記録日</label>
+                        <input
+                          type="date"
+                          value={typeof editForm.recordDate === 'string' ? editForm.recordDate : ''}
+                          onChange={(e) => setEditForm({ ...editForm, recordDate: e.target.value })}
+                          className="input-elegant text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: '#555' }}>走行距離</label>
+                        <p className="text-lg font-bold mt-1" style={{ color: '#1d4ed8' }}>{editDistance.toFixed(1)} km</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: '#555' }}>出発時間</label>
+                        <input
+                          type="time"
+                          value={editForm.departureTime}
+                          onChange={(e) => setEditForm({ ...editForm, departureTime: e.target.value })}
+                          className="input-elegant text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: '#555' }}>終了時間</label>
+                        <input
+                          type="time"
+                          value={editForm.arrivalTime}
+                          onChange={(e) => setEditForm({ ...editForm, arrivalTime: e.target.value })}
+                          className="input-elegant text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: '#555' }}>出発走行距離 (km)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={eDepDist === 0 ? "" : eDepDist}
+                          placeholder="0"
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              departureDistance: e.target.value === "" ? 0 : parseFloat(e.target.value) || 0,
+                            })
+                          }
+                          className="input-elegant text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: '#555' }}>終了走行距離 (km)</label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={eArrDist === 0 ? "" : eArrDist}
+                          placeholder="0"
+                          onChange={(e) =>
+                            setEditForm({
+                              ...editForm,
+                              arrivalDistance: e.target.value === "" ? 0 : parseFloat(e.target.value) || 0,
+                            })
+                          }
+                          className="input-elegant text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 );
-                })}
-              </tbody>
-            </table>
+              }
+
+              return (
+                <div key={record.id || idx} className="card-elegant p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 grid grid-cols-3 sm:grid-cols-6 gap-2 text-sm">
+                      <div>
+                        <p className="text-xs" style={{ color: '#888' }}>日付</p>
+                        <p className="font-medium" style={{ color: '#111' }}>{new Date(record.recordDate).toLocaleDateString("ja-JP")}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs" style={{ color: '#888' }}>出発</p>
+                        <p className="font-medium" style={{ color: '#111' }}>{record.departureTime}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs" style={{ color: '#888' }}>終了</p>
+                        <p className="font-medium" style={{ color: '#111' }}>{record.arrivalTime}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs" style={{ color: '#888' }}>出発距離</p>
+                        <p className="font-medium" style={{ color: '#111' }}>{rDepDist.toFixed(1)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs" style={{ color: '#888' }}>終了距離</p>
+                        <p className="font-medium" style={{ color: '#111' }}>{rArrDist.toFixed(1)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs" style={{ color: '#888' }}>走行距離</p>
+                        <p className="font-bold" style={{ color: '#1d4ed8' }}>{calculateDistance(rDepDist, rArrDist).toFixed(1)} km</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 ml-3 shrink-0">
+                      <button
+                        onClick={() => handleStartEdit(record)}
+                        className="p-2 rounded-md transition-colors hover:bg-blue-50"
+                        title="編集"
+                      >
+                        <Pencil className="h-4 w-4" style={{ color: '#1d4ed8' }} />
+                      </button>
+                      <button
+                        onClick={() => record.id && handleDeleteRecord(record.id)}
+                        disabled={deleteRecordMutation.isPending}
+                        className="p-2 rounded-md transition-colors hover:bg-red-50 disabled:opacity-50"
+                        title="削除"
+                      >
+                        <Trash2 className="h-4 w-4" style={{ color: '#dc2626' }} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

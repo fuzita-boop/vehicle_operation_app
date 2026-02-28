@@ -86,6 +86,29 @@ export const appRouter = router({
       const { getDailyRecordsByCycle } = await import("./db");
       return await getDailyRecordsByCycle(input.cycleId);
     }),
+    updateRecord: protectedProcedure.input((val: any) => val as {
+      recordId: number;
+      recordDate?: string;
+      departureTime?: string;
+      arrivalTime?: string;
+      departureDistance?: number;
+      arrivalDistance?: number;
+    }).mutation(async ({ input }) => {
+      const { updateDailyRecord } = await import("./db");
+      const data: any = {};
+      if (input.recordDate !== undefined) data.recordDate = new Date(input.recordDate);
+      if (input.departureTime !== undefined) data.departureTime = input.departureTime;
+      if (input.arrivalTime !== undefined) data.arrivalTime = input.arrivalTime;
+      if (input.departureDistance !== undefined) data.departureDistance = input.departureDistance;
+      if (input.arrivalDistance !== undefined) data.arrivalDistance = input.arrivalDistance;
+      await updateDailyRecord(input.recordId, data);
+      return { success: true };
+    }),
+    deleteRecord: protectedProcedure.input((val: any) => val as { recordId: number }).mutation(async ({ input }) => {
+      const { deleteDailyRecord } = await import("./db");
+      await deleteDailyRecord(input.recordId);
+      return { success: true };
+    }),
   }),
 });
 

@@ -65,3 +65,11 @@
 - [x] PDF出力ボタンを削除（MonthlyReportページ）
 - [x] 画像出力ボタンを削除（MonthlyReportページ）
 - [x] html2canvas/jsPDF関連コードを削除
+
+## Phase 11: 過去の記録の編集機能
+- [x] サーバー側にupdateRecord APIを追加（server/db.ts + server/routers.ts）
+- [x] DailyRecordページに記録一覧の編集ボタンを追加
+- [x] 編集モードのインラインフォームまたはモーダルを実装
+- [x] 編集後のデータ保存・リスト更新処理
+- [x] 削除機能も追加
+- [x] Vitestテスト作成・全テストパス
