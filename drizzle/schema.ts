@@ -75,9 +75,9 @@ export const dailyRecords = mysqlTable("dailyRecords", {
   cycleId: int("cycleId").notNull(),
   recordDate: date("recordDate").notNull(),
   departureTime: varchar("departureTime", { length: 5 }).notNull(), // HH:MM形式
-  arrivalTime: varchar("arrivalTime", { length: 5 }).notNull(), // HH:MM形式
+  arrivalTime: varchar("arrivalTime", { length: 5 }), // HH:MM形式（帰着後に入力）
   departureDistance: decimal("departureDistance", { precision: 10, scale: 1 }).notNull(), // 出発時走行距離
-  arrivalDistance: decimal("arrivalDistance", { precision: 10, scale: 1 }).notNull(), // 到着時走行距離
+  arrivalDistance: decimal("arrivalDistance", { precision: 10, scale: 1 }), // 到着時走行距離（帰着後に入力）
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

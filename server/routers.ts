@@ -67,9 +67,9 @@ export const appRouter = router({
       cycleId: number;
       recordDate: string;
       departureTime: string;
-      arrivalTime: string;
+      arrivalTime?: string | null;
       departureDistance: number;
-      arrivalDistance: number;
+      arrivalDistance?: number | null;
     }).mutation(async ({ input }) => {
       const { addDailyRecord } = await import("./db");
       // Pass YYYY-MM-DD string directly to avoid timezone shift
@@ -77,9 +77,9 @@ export const appRouter = router({
         input.cycleId,
         input.recordDate,
         input.departureTime,
-        input.arrivalTime,
+        input.arrivalTime ?? null,
         input.departureDistance,
-        input.arrivalDistance
+        input.arrivalDistance ?? null
       );
     }),
     getRecords: protectedProcedure.input((val: any) => val as { cycleId: number }).query(async ({ input }) => {

@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE `dailyRecords` MODIFY COLUMN `arrivalTime` varchar(5);\nALTER TABLE `dailyRecords` MODIFY COLUMN `arrivalDistance` decimal(10,1);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user PaJKUxkzic33EKU.9fabc4a7d82e --database megdFLwq3PKkC44ndRH8R7 --execute ALTER TABLE `dailyRecords` MODIFY COLUMN `arrivalTime` varchar(5);\nALTER TABLE `dailyRecords` MODIFY COLUMN `arrivalDistance` decimal(10,1);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1939
+}

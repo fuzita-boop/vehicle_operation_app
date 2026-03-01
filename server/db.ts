@@ -180,9 +180,9 @@ export async function addDailyRecord(
   cycleId: number,
   recordDate: string,
   departureTime: string,
-  arrivalTime: string,
+  arrivalTime: string | null,
   departureDistance: number,
-  arrivalDistance: number
+  arrivalDistance: number | null
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -191,9 +191,9 @@ export async function addDailyRecord(
     cycleId,
     recordDate: parseDateString(recordDate),
     departureTime,
-    arrivalTime,
+    arrivalTime: arrivalTime ?? undefined,
     departureDistance: departureDistance.toString(),
-    arrivalDistance: arrivalDistance.toString(),
+    arrivalDistance: arrivalDistance != null ? arrivalDistance.toString() : undefined,
   });
 
   return result[0];
@@ -237,9 +237,9 @@ export async function updateDailyRecord(
   data: {
     recordDate?: string;
     departureTime?: string;
-    arrivalTime?: string;
+    arrivalTime?: string | null;
     departureDistance?: number;
-    arrivalDistance?: number;
+    arrivalDistance?: number | null;
   }
 ) {
   const db = await getDb();
@@ -250,7 +250,7 @@ export async function updateDailyRecord(
   if (data.departureTime !== undefined) updateSet.departureTime = data.departureTime;
   if (data.arrivalTime !== undefined) updateSet.arrivalTime = data.arrivalTime;
   if (data.departureDistance !== undefined) updateSet.departureDistance = data.departureDistance.toString();
-  if (data.arrivalDistance !== undefined) updateSet.arrivalDistance = data.arrivalDistance.toString();
+  if (data.arrivalDistance !== undefined) updateSet.arrivalDistance = data.arrivalDistance != null ? data.arrivalDistance.toString() : null;
 
   return await db.update(dailyRecords).set(updateSet).where(eq(dailyRecords.id, recordId));
 }

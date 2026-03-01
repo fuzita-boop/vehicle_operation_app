@@ -8,9 +8,9 @@ interface ReportRecord {
   id?: number;
   recordDate: string | Date;
   departureTime: string;
-  arrivalTime: string;
+  arrivalTime: string | null;
   departureDistance: number | string;
-  arrivalDistance: number | string;
+  arrivalDistance: number | string | null;
   cycleId?: number;
   createdAt?: Date;
   updatedAt?: Date;
@@ -64,15 +64,19 @@ export default function MonthlyReport() {
               ? parseFloat(r.departureDistance)
               : r.departureDistance,
           arrivalDistance:
-            typeof r.arrivalDistance === "string"
-              ? parseFloat(r.arrivalDistance)
-              : r.arrivalDistance,
+            r.arrivalDistance == null
+              ? null
+              : typeof r.arrivalDistance === "string"
+                ? parseFloat(r.arrivalDistance)
+                : r.arrivalDistance,
+          arrivalTime: r.arrivalTime ?? null,
         }))
       );
     }
   }, [initialRecords, currentCycle?.id]);
 
-  const calculateDistance = (departure: number, arrival: number) => {
+  const calculateDistance = (departure: number, arrival: number | null) => {
+    if (arrival == null) return 0;
     return Math.max(0, arrival - departure);
   };
 
@@ -82,9 +86,11 @@ export default function MonthlyReport() {
         ? parseFloat(record.departureDistance)
         : record.departureDistance;
     const arrDist =
-      typeof record.arrivalDistance === "string"
-        ? parseFloat(record.arrivalDistance)
-        : record.arrivalDistance;
+      record.arrivalDistance == null
+        ? null
+        : typeof record.arrivalDistance === "string"
+          ? parseFloat(record.arrivalDistance)
+          : record.arrivalDistance;
     return sum + calculateDistance(depDist, arrDist);
   }, 0);
 
@@ -96,19 +102,21 @@ export default function MonthlyReport() {
           ? parseFloat(record.departureDistance)
           : record.departureDistance;
       const arrDist =
-        typeof record.arrivalDistance === "string"
-          ? parseFloat(record.arrivalDistance)
-          : record.arrivalDistance;
+        record.arrivalDistance == null
+          ? null
+          : typeof record.arrivalDistance === "string"
+            ? parseFloat(record.arrivalDistance)
+            : record.arrivalDistance;
       const distance = calculateDistance(depDist, arrDist);
       const dateStr = new Date(record.recordDate).toLocaleDateString("ja-JP");
 
       return `<tr>
         <td>${dateStr}</td>
         <td style="text-align:center">${record.departureTime}</td>
-        <td style="text-align:center">${record.arrivalTime}</td>
+        <td style="text-align:center">${arrDist != null ? record.arrivalTime ?? '未入力' : '未入力'}</td>
         <td style="text-align:right">${depDist.toFixed(1)}</td>
-        <td style="text-align:right">${arrDist.toFixed(1)}</td>
-        <td style="text-align:right;font-weight:600">${distance.toFixed(1)}</td>
+        <td style="text-align:right">${arrDist != null ? arrDist.toFixed(1) : '-'}</td>
+        <td style="text-align:right;font-weight:600">${arrDist != null ? distance.toFixed(1) : '-'}</td>
       </tr>`;
     }).join("");
 
@@ -341,9 +349,11 @@ export default function MonthlyReport() {
                       ? parseFloat(record.departureDistance)
                       : record.departureDistance;
                   const arrDist =
-                    typeof record.arrivalDistance === "string"
-                      ? parseFloat(record.arrivalDistance)
-                      : record.arrivalDistance;
+                    record.arrivalDistance == null
+                      ? null
+                      : typeof record.arrivalDistance === "string"
+                        ? parseFloat(record.arrivalDistance)
+                        : record.arrivalDistance;
                   const distance = calculateDistance(depDist, arrDist);
 
                   return (
@@ -354,17 +364,17 @@ export default function MonthlyReport() {
                       <td className="border px-2 py-1 text-xs text-center" style={{ color: "#000", borderColor: "#333" }}>
                         {record.departureTime}
                       </td>
-                      <td className="border px-2 py-1 text-xs text-center" style={{ color: "#000", borderColor: "#333" }}>
-                        {record.arrivalTime}
+                      <td className="border px-2 py-1 text-xs text-center" style={{ color: arrDist == null ? "#999" : "#000", borderColor: "#333" }}>
+                        {record.arrivalTime ?? '未入力'}
                       </td>
                       <td className="border px-2 py-1 text-xs text-right" style={{ color: "#000", borderColor: "#333" }}>
                         {depDist.toFixed(1)}
                       </td>
-                      <td className="border px-2 py-1 text-xs text-right" style={{ color: "#000", borderColor: "#333" }}>
-                        {arrDist.toFixed(1)}
+                      <td className="border px-2 py-1 text-xs text-right" style={{ color: arrDist == null ? "#999" : "#000", borderColor: "#333" }}>
+                        {arrDist != null ? arrDist.toFixed(1) : '-'}
                       </td>
-                      <td className="border px-2 py-1 text-xs text-right font-semibold" style={{ color: "#000", borderColor: "#333" }}>
-                        {distance.toFixed(1)}
+                      <td className="border px-2 py-1 text-xs text-right font-semibold" style={{ color: arrDist == null ? "#999" : "#000", borderColor: "#333" }}>
+                        {arrDist != null ? distance.toFixed(1) : '-'}
                       </td>
                     </tr>
                   );

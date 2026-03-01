@@ -49,7 +49,7 @@ describe("vehicle.updateRecord", () => {
     vi.clearAllMocks();
   });
 
-  it("calls updateDailyRecord with correct parameters", async () => {
+  it("calls updateDailyRecord with correct parameters (full update)", async () => {
     const mockUpdateDailyRecord = vi.mocked(db.updateDailyRecord);
     mockUpdateDailyRecord.mockResolvedValue(undefined as any);
 
@@ -75,7 +75,7 @@ describe("vehicle.updateRecord", () => {
     });
   });
 
-  it("handles partial updates", async () => {
+  it("handles partial updates (departure only)", async () => {
     const mockUpdateDailyRecord = vi.mocked(db.updateDailyRecord);
     mockUpdateDailyRecord.mockResolvedValue(undefined as any);
 
@@ -90,6 +90,27 @@ describe("vehicle.updateRecord", () => {
     expect(result).toEqual({ success: true });
     expect(mockUpdateDailyRecord).toHaveBeenCalledWith(2, {
       departureTime: "09:00",
+    });
+  });
+
+  it("adds arrival info to an existing departure-only record", async () => {
+    const mockUpdateDailyRecord = vi.mocked(db.updateDailyRecord);
+    mockUpdateDailyRecord.mockResolvedValue(undefined as any);
+
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    // Simulate adding arrival info to a record that only had departure
+    const result = await caller.vehicle.updateRecord({
+      recordId: 3,
+      arrivalTime: "18:30",
+      arrivalDistance: 200,
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(mockUpdateDailyRecord).toHaveBeenCalledWith(3, {
+      arrivalTime: "18:30",
+      arrivalDistance: 200,
     });
   });
 });
@@ -118,14 +139,14 @@ describe("vehicle.addRecord", () => {
     vi.clearAllMocks();
   });
 
-  it("calls addDailyRecord with correct parameters", async () => {
+  it("calls addDailyRecord with all parameters (full record)", async () => {
     const mockAddDailyRecord = vi.mocked(db.addDailyRecord);
     mockAddDailyRecord.mockResolvedValue({ insertId: 1 } as any);
 
     const ctx = createAuthContext();
     const caller = appRouter.createCaller(ctx);
 
-    const result = await caller.vehicle.addRecord({
+    await caller.vehicle.addRecord({
       cycleId: 1,
       recordDate: "2026-02-20",
       departureTime: "08:00",
@@ -141,6 +162,57 @@ describe("vehicle.addRecord", () => {
       "17:00",
       100,
       150
+    );
+  });
+
+  it("calls addDailyRecord with null arrival info (departure-only record)", async () => {
+    const mockAddDailyRecord = vi.mocked(db.addDailyRecord);
+    mockAddDailyRecord.mockResolvedValue({ insertId: 2 } as any);
+
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await caller.vehicle.addRecord({
+      cycleId: 1,
+      recordDate: "2026-02-21",
+      departureTime: "07:30",
+      arrivalTime: null,
+      departureDistance: 200,
+      arrivalDistance: null,
+    });
+
+    expect(mockAddDailyRecord).toHaveBeenCalledWith(
+      1,
+      "2026-02-21",
+      "07:30",
+      null,
+      200,
+      null
+    );
+  });
+
+  it("calls addDailyRecord without optional arrival fields (departure-only, omitted)", async () => {
+    const mockAddDailyRecord = vi.mocked(db.addDailyRecord);
+    mockAddDailyRecord.mockResolvedValue({ insertId: 3 } as any);
+
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await caller.vehicle.addRecord({
+      cycleId: 2,
+      recordDate: "2026-02-22",
+      departureTime: "06:00",
+      departureDistance: 300,
+    });
+
+    // arrivalTime and arrivalDistance default to null when omitted
+    expect(mockAddDailyRecord).toHaveBeenCalledWith(
+      2,
+      "2026-02-22",
+      "06:00",
+      null,
+      300,
+      null
     );
   });
 });

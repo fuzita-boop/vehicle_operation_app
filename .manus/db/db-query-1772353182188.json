@@ -1,0 +1,64 @@
+{
+  "query": "SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_NAME = 'dailyRecords' ORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user PaJKUxkzic33EKU.9fabc4a7d82e --database megdFLwq3PKkC44ndRH8R7 --execute SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_NAME = 'dailyRecords' ORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "id",
+      "IS_NULLABLE": "NO",
+      "DATA_TYPE": "int",
+      "COLUMN_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "cycleId",
+      "IS_NULLABLE": "NO",
+      "DATA_TYPE": "int",
+      "COLUMN_TYPE": "int"
+    },
+    {
+      "COLUMN_NAME": "recordDate",
+      "IS_NULLABLE": "NO",
+      "DATA_TYPE": "date",
+      "COLUMN_TYPE": "date"
+    },
+    {
+      "COLUMN_NAME": "departureTime",
+      "IS_NULLABLE": "NO",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(5)"
+    },
+    {
+      "COLUMN_NAME": "arrivalTime",
+      "IS_NULLABLE": "YES",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(5)"
+    },
+    {
+      "COLUMN_NAME": "departureDistance",
+      "IS_NULLABLE": "NO",
+      "DATA_TYPE": "decimal",
+      "COLUMN_TYPE": "decimal(10,1)"
+    },
+    {
+      "COLUMN_NAME": "arrivalDistance",
+      "IS_NULLABLE": "YES",
+      "DATA_TYPE": "decimal",
+      "COLUMN_TYPE": "decimal(10,1)"
+    },
+    {
+      "COLUMN_NAME": "createdAt",
+      "IS_NULLABLE": "NO",
+      "DATA_TYPE": "timestamp",
+      "COLUMN_TYPE": "timestamp"
+    },
+    {
+      "COLUMN_NAME": "updatedAt",
+      "IS_NULLABLE": "NO",
+      "DATA_TYPE": "timestamp",
+      "COLUMN_TYPE": "timestamp"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\tIS_NULLABLE\tDATA_TYPE\tCOLUMN_TYPE\nid\tNO\tint\tint\ncycleId\tNO\tint\tint\nrecordDate\tNO\tdate\tdate\ndepartureTime\tNO\tvarchar\tvarchar(5)\narrivalTime\tYES\tvarchar\tvarchar(5)\ndepartureDistance\tNO\tdecimal\tdecimal(10,1)\narrivalDistance\tYES\tdecimal\tdecimal(10,1)\ncreatedAt\tNO\ttimestamp\ttimestamp\nupdatedAt\tNO\ttimestamp\ttimestamp\n",
+  "stderr": "",
+  "execution_time_ms": 1522
+}
