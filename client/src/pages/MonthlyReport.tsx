@@ -95,6 +95,7 @@ export default function MonthlyReport() {
       <div
         ref={reportRef}
         className="print-container bg-white p-8 rounded-lg border border-border shadow-sm"
+        style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' as any }}
       >
         {/* Header */}
         <div className="mb-3 border-b-2 border-black pb-2">
@@ -127,22 +128,22 @@ export default function MonthlyReport() {
           <table className="print-table w-full border-collapse">
             <thead>
               <tr>
-                <th className="border border-black px-2 py-2 bg-gray-200 font-bold text-xs">
+                <th className="border border-black px-1 py-1 bg-gray-200 font-bold text-xs">
                   日付
                 </th>
-                <th className="border border-black px-2 py-2 bg-gray-200 font-bold text-xs">
+                <th className="border border-black px-1 py-1 bg-gray-200 font-bold text-xs">
                   出発時間
                 </th>
-                <th className="border border-black px-2 py-2 bg-gray-200 font-bold text-xs">
+                <th className="border border-black px-1 py-1 bg-gray-200 font-bold text-xs">
                   終了時間
                 </th>
-                <th className="border border-black px-2 py-2 bg-gray-200 font-bold text-xs">
-                  出発走行距離
+                <th className="border border-black px-1 py-1 bg-gray-200 font-bold text-xs">
+                  出発距離
                 </th>
-                <th className="border border-black px-2 py-2 bg-gray-200 font-bold text-xs">
-                  終了走行距離
+                <th className="border border-black px-1 py-1 bg-gray-200 font-bold text-xs">
+                  終了距離
                 </th>
-                <th className="border border-black px-2 py-2 bg-gray-200 font-bold text-xs">
+                <th className="border border-black px-1 py-1 bg-gray-200 font-bold text-xs">
                   走行距離
                 </th>
               </tr>
@@ -172,22 +173,22 @@ export default function MonthlyReport() {
 
                   return (
                     <tr key={idx}>
-                      <td className="border border-black px-2 py-1 text-xs" style={{ color: "#000" }}>
+                      <td className="border border-black px-1 py-0.5 text-xs" style={{ color: "#000" }}>
                         {new Date(record.recordDate).toLocaleDateString("ja-JP")}
                       </td>
-                      <td className="border border-black px-2 py-1 text-xs text-center" style={{ color: "#000" }}>
+                      <td className="border border-black px-1 py-0.5 text-xs text-center" style={{ color: "#000" }}>
                         {record.departureTime}
                       </td>
-                      <td className="border border-black px-2 py-1 text-xs text-center" style={{ color: "#000" }}>
+                      <td className="border border-black px-1 py-0.5 text-xs text-center" style={{ color: "#000" }}>
                         {record.arrivalTime}
                       </td>
-                      <td className="border border-black px-2 py-1 text-xs text-right" style={{ color: "#000" }}>
+                      <td className="border border-black px-1 py-0.5 text-xs text-right" style={{ color: "#000" }}>
                         {depDist.toFixed(1)}
                       </td>
-                      <td className="border border-black px-2 py-1 text-xs text-right" style={{ color: "#000" }}>
+                      <td className="border border-black px-1 py-0.5 text-xs text-right" style={{ color: "#000" }}>
                         {arrDist.toFixed(1)}
                       </td>
-                      <td className="border border-black px-2 py-1 text-xs text-right font-semibold" style={{ color: "#000" }}>
+                      <td className="border border-black px-1 py-0.5 text-xs text-right font-semibold" style={{ color: "#000" }}>
                         {distance.toFixed(1)}
                       </td>
                     </tr>
@@ -199,26 +200,20 @@ export default function MonthlyReport() {
         </div>
 
         {/* Total Section */}
-        <div className="border-t-2 border-black pt-2">
-          <div className="grid grid-cols-2 gap-4 text-xs">
-            <div>
-              <p style={{ color: "#666" }}>記録日数</p>
-              <p className="text-lg font-bold" style={{ color: "#000" }}>
-                {records.length}
-              </p>
-            </div>
-            <div>
-              <p style={{ color: "#666" }}>総走行距離</p>
-              <p className="text-lg font-bold" style={{ color: "#000" }}>
-                {totalDistance.toFixed(1)} km
-              </p>
-            </div>
+        <div className="border-t-2 border-black pt-1">
+          <div className="flex justify-between text-xs">
+            <p style={{ color: "#000" }}>
+              記録日数: <span className="font-bold">{records.length}日</span>
+            </p>
+            <p style={{ color: "#000" }}>
+              総走行距離: <span className="font-bold text-sm">{totalDistance.toFixed(1)} km</span>
+            </p>
           </div>
         </div>
 
         {/* Footer */}
         <div
-          className="mt-2 pt-2 border-t text-xs text-center"
+          className="mt-1 pt-1 border-t text-xs text-center"
           style={{ borderColor: "#ccc", color: "#666" }}
         >
           <p>印刷日: {new Date().toLocaleDateString("ja-JP")}</p>
