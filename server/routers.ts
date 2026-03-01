@@ -110,6 +110,10 @@ export const appRouter = router({
       await deleteDailyRecord(input.recordId);
       return { success: true };
     }),
+    getCycles: protectedProcedure.query(async ({ ctx }) => {
+      const { getAllCycles } = await import("./db");
+      return await getAllCycles(ctx.user.id);
+    }),
   }),
 });
 

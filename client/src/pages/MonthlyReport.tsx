@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import VehicleLayout from "@/components/VehicleLayout";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
-import { ArrowLeft, Printer } from "lucide-react";
+import { ArrowLeft, Printer, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ReportRecord {
   id?: number;
@@ -16,22 +16,69 @@ interface ReportRecord {
   updatedAt?: Date;
 }
 
+interface CycleOption {
+  id: number;
+  cycleStartDate: string | Date;
+  cycleEndDate: string | Date;
+  label: string;
+}
+
 export default function MonthlyReport() {
   const [records, setRecords] = useState<ReportRecord[]>([]);
   const [driverName, setDriverName] = useState("");
   const [vehicleNumber, setVehicleNumber] = useState("");
-  const [cycleInfo, setCycleInfo] = useState<{ start: string; end: string }>({
-    start: "",
-    end: "",
-  });
+  const [selectedCycleId, setSelectedCycleId] = useState<number | null>(null);
 
   const { data: currentCycle } = trpc.vehicle.getCurrentCycle.useQuery();
+  const { data: allCycles } = trpc.vehicle.getCycles.useQuery();
   const { data: driver } = trpc.vehicle.getDriver.useQuery();
   const { data: vehicle } = trpc.vehicle.getVehicle.useQuery();
-  const { data: initialRecords } = trpc.vehicle.getRecords.useQuery(
-    currentCycle?.id ? { cycleId: currentCycle.id } : { cycleId: 0 },
-    { enabled: !!currentCycle?.id }
+
+  // 表示対象のサイクルID（選択中 or 現在のサイクル）
+  const activeCycleId = selectedCycleId ?? currentCycle?.id ?? null;
+
+  const { data: fetchedRecords } = trpc.vehicle.getRecords.useQuery(
+    activeCycleId ? { cycleId: activeCycleId } : { cycleId: 0 },
+    { enabled: !!activeCycleId }
   );
+
+  // サイクル選択肢（新しい順）
+  const cycleOptions = useMemo<CycleOption[]>(() => {
+    if (!allCycles) return [];
+    return [...allCycles]
+      .sort((a, b) => new Date(b.cycleStartDate).getTime() - new Date(a.cycleStartDate).getTime())
+      .map((c) => {
+        const start = new Date(c.cycleStartDate).toLocaleDateString("ja-JP");
+        const end = new Date(c.cycleEndDate).toLocaleDateString("ja-JP");
+        const isCurrentCycle = c.id === currentCycle?.id;
+        return {
+          id: c.id,
+          cycleStartDate: c.cycleStartDate,
+          cycleEndDate: c.cycleEndDate,
+          label: isCurrentCycle ? `${start} 〜 ${end}（今月）` : `${start} 〜 ${end}`,
+        };
+      });
+  }, [allCycles, currentCycle?.id]);
+
+  // 現在選択中のサイクル情報
+  const activeCycle = useMemo(() => {
+    if (!allCycles || !activeCycleId) return currentCycle ?? null;
+    return allCycles.find((c) => c.id === activeCycleId) ?? currentCycle ?? null;
+  }, [allCycles, activeCycleId, currentCycle]);
+
+  const cycleInfo = useMemo(() => {
+    if (!activeCycle) return { start: "", end: "" };
+    return {
+      start: new Date(activeCycle.cycleStartDate).toLocaleDateString("ja-JP"),
+      end: new Date(activeCycle.cycleEndDate).toLocaleDateString("ja-JP"),
+    };
+  }, [activeCycle]);
+
+  // 現在選択中のインデックス（cycleOptions内）
+  const currentIndex = useMemo(() => {
+    if (!activeCycleId) return 0;
+    return cycleOptions.findIndex((c) => c.id === activeCycleId);
+  }, [cycleOptions, activeCycleId]);
 
   useEffect(() => {
     if (driver?.driverName) setDriverName(driver.driverName);
@@ -41,19 +88,17 @@ export default function MonthlyReport() {
     if (vehicle?.vehicleNumber) setVehicleNumber(vehicle.vehicleNumber);
   }, [vehicle]);
 
+  // 初期選択：現在のサイクルを選択
   useEffect(() => {
-    if (currentCycle?.cycleStartDate && currentCycle?.cycleEndDate) {
-      setCycleInfo({
-        start: new Date(currentCycle.cycleStartDate).toLocaleDateString("ja-JP"),
-        end: new Date(currentCycle.cycleEndDate).toLocaleDateString("ja-JP"),
-      });
+    if (currentCycle?.id && selectedCycleId === null) {
+      setSelectedCycleId(currentCycle.id);
     }
-  }, [currentCycle]);
+  }, [currentCycle?.id, selectedCycleId]);
 
   useEffect(() => {
-    if (initialRecords && currentCycle?.id) {
+    if (fetchedRecords && activeCycleId) {
       setRecords(
-        initialRecords.map((r) => ({
+        fetchedRecords.map((r) => ({
           ...r,
           recordDate:
             r.recordDate instanceof Date
@@ -73,7 +118,7 @@ export default function MonthlyReport() {
         }))
       );
     }
-  }, [initialRecords, currentCycle?.id]);
+  }, [fetchedRecords, activeCycleId]);
 
   const calculateDistance = (departure: number, arrival: number | null) => {
     if (arrival == null) return 0;
@@ -84,45 +129,58 @@ export default function MonthlyReport() {
     const depDist =
       typeof record.departureDistance === "string"
         ? parseFloat(record.departureDistance)
-        : record.departureDistance;
+        : (record.departureDistance as number);
     const arrDist =
       record.arrivalDistance == null
         ? null
         : typeof record.arrivalDistance === "string"
           ? parseFloat(record.arrivalDistance)
-          : record.arrivalDistance;
+          : (record.arrivalDistance as number);
     return sum + calculateDistance(depDist, arrDist);
   }, 0);
 
-  // Generate standalone print HTML with NO external dependencies
+  // 前後のサイクルに移動
+  const goToPrev = () => {
+    if (currentIndex < cycleOptions.length - 1) {
+      setSelectedCycleId(cycleOptions[currentIndex + 1].id);
+    }
+  };
+  const goToNext = () => {
+    if (currentIndex > 0) {
+      setSelectedCycleId(cycleOptions[currentIndex - 1].id);
+    }
+  };
+
+  // 印刷用スタンドアロンHTML生成
   const handlePrint = useCallback(() => {
     const tableRows = records.map((record) => {
       const depDist =
         typeof record.departureDistance === "string"
           ? parseFloat(record.departureDistance)
-          : record.departureDistance;
+          : (record.departureDistance as number);
       const arrDist =
         record.arrivalDistance == null
           ? null
           : typeof record.arrivalDistance === "string"
             ? parseFloat(record.arrivalDistance)
-            : record.arrivalDistance;
+            : (record.arrivalDistance as number);
       const distance = calculateDistance(depDist, arrDist);
       const dateStr = new Date(record.recordDate).toLocaleDateString("ja-JP");
 
       return `<tr>
         <td>${dateStr}</td>
         <td style="text-align:center">${record.departureTime}</td>
-        <td style="text-align:center">${arrDist != null ? record.arrivalTime ?? '未入力' : '未入力'}</td>
+        <td style="text-align:center">${arrDist != null ? record.arrivalTime ?? "未入力" : "未入力"}</td>
         <td style="text-align:right">${depDist.toFixed(1)}</td>
-        <td style="text-align:right">${arrDist != null ? arrDist.toFixed(1) : '-'}</td>
-        <td style="text-align:right;font-weight:600">${arrDist != null ? distance.toFixed(1) : '-'}</td>
+        <td style="text-align:right">${arrDist != null ? arrDist.toFixed(1) : "-"}</td>
+        <td style="text-align:right;font-weight:600">${arrDist != null ? distance.toFixed(1) : "-"}</td>
       </tr>`;
     }).join("");
 
-    const emptyRow = records.length === 0
-      ? `<tr><td colspan="6" style="text-align:center;padding:20px;color:#888">記録がありません</td></tr>`
-      : "";
+    const emptyRow =
+      records.length === 0
+        ? `<tr><td colspan="6" style="text-align:center;padding:20px;color:#888">記録がありません</td></tr>`
+        : "";
 
     const printHtml = `<!DOCTYPE html>
 <html lang="ja">
@@ -131,97 +189,26 @@ export default function MonthlyReport() {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>車両運行日報</title>
 <style>
-  @page {
-    size: A4 portrait;
-    margin: 8mm;
-  }
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
+  @page { size: A4 portrait; margin: 8mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
-    font-size: 11px;
-    line-height: 1.3;
-    color: #000;
-    background: #fff;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    font-size: 11px; line-height: 1.3; color: #000; background: #fff;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
-  .page {
-    width: 194mm;
-    max-height: 281mm;
-    margin: 0 auto;
-    overflow: hidden;
-  }
-  .title {
-    text-align: center;
-    font-size: 18px;
-    font-weight: 700;
-    padding: 4px 0;
-    border-bottom: 2px solid #000;
-    margin-bottom: 6px;
-  }
-  .info-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 2px;
-    font-size: 11px;
-  }
-  .info-row .label {
-    color: #555;
-    font-size: 10px;
-  }
-  .info-row .value {
-    font-weight: 600;
-  }
-  .period {
-    text-align: center;
-    font-size: 10px;
-    color: #555;
-    margin-bottom: 6px;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 10px;
-    table-layout: fixed;
-  }
-  th, td {
-    border: 1px solid #000;
-    padding: 3px 4px;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-  th {
-    background-color: #e5e5e5;
-    font-weight: 700;
-    text-align: center;
-    font-size: 10px;
-  }
-  .summary {
-    border-top: 2px solid #000;
-    margin-top: 6px;
-    padding-top: 4px;
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-  }
-  .summary .total-value {
-    font-size: 14px;
-    font-weight: 700;
-  }
-  .footer {
-    border-top: 1px solid #ccc;
-    margin-top: 4px;
-    padding-top: 3px;
-    text-align: center;
-    font-size: 9px;
-    color: #888;
-  }
+  .page { width: 194mm; max-height: 281mm; margin: 0 auto; overflow: hidden; }
+  .title { text-align: center; font-size: 18px; font-weight: 700; padding: 4px 0; border-bottom: 2px solid #000; margin-bottom: 6px; }
+  .info-row { display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 11px; }
+  .info-row .label { color: #555; font-size: 10px; }
+  .info-row .value { font-weight: 600; }
+  .period { text-align: center; font-size: 10px; color: #555; margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 10px; table-layout: fixed; }
+  th, td { border: 1px solid #000; padding: 3px 4px; overflow: hidden; white-space: nowrap; }
+  th { background-color: #e5e5e5; font-weight: 700; text-align: center; font-size: 10px; }
+  .summary { border-top: 2px solid #000; margin-top: 6px; padding-top: 4px; display: flex; justify-content: space-between; font-size: 11px; }
+  .summary .total-value { font-size: 14px; font-weight: 700; }
+  .footer { border-top: 1px solid #ccc; margin-top: 4px; padding-top: 3px; text-align: center; font-size: 9px; color: #888; }
 </style>
 </head>
 <body>
@@ -243,9 +230,7 @@ export default function MonthlyReport() {
         <th style="width:18%">走行距離</th>
       </tr>
     </thead>
-    <tbody>
-      ${emptyRow}${tableRows}
-    </tbody>
+    <tbody>${emptyRow}${tableRows}</tbody>
   </table>
   <div class="summary">
     <div>記録日数: <span class="total-value">${records.length}日</span></div>
@@ -257,14 +242,10 @@ export default function MonthlyReport() {
   window.onload = function() {
     setTimeout(function() {
       window.print();
-      // After print dialog closes, close this window
       setTimeout(function() { window.close(); }, 500);
     }, 300);
   };
-  // Also close on afterprint event (fires after print dialog is dismissed)
-  window.addEventListener('afterprint', function() {
-    window.close();
-  });
+  window.addEventListener('afterprint', function() { window.close(); });
 <\/script>
 </body>
 </html>`;
@@ -278,9 +259,62 @@ export default function MonthlyReport() {
 
   return (
     <VehicleLayout title="月次レポート" subtitle="1ヶ月分の運行記録">
-      {/* Screen Display */}
+
+      {/* サイクル選択UI */}
+      <div className="card-elegant mb-6 p-4">
+        <p className="text-xs text-muted-foreground mb-3 font-medium">対象サイクルを選択</p>
+
+        {/* セレクトボックス */}
+        <select
+          value={activeCycleId ?? ""}
+          onChange={(e) => setSelectedCycleId(Number(e.target.value))}
+          className="input-elegant text-sm mb-3"
+        >
+          {cycleOptions.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+
+        {/* 前後ナビゲーション */}
+        <div className="flex items-center justify-between gap-2">
+          <button
+            onClick={goToPrev}
+            disabled={currentIndex >= cycleOptions.length - 1}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-40"
+            style={{ backgroundColor: '#f3f4f6', color: '#374151' }}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            前のサイクル
+          </button>
+
+          <span className="text-sm font-medium text-center flex-1" style={{ color: '#1d4ed8' }}>
+            {cycleInfo.start && cycleInfo.end
+              ? `${cycleInfo.start} 〜 ${cycleInfo.end}`
+              : "読み込み中..."}
+            {activeCycleId === currentCycle?.id && (
+              <span className="ml-2 text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#dbeafe', color: '#1d4ed8' }}>
+                今月
+              </span>
+            )}
+          </span>
+
+          <button
+            onClick={goToNext}
+            disabled={currentIndex <= 0}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-40"
+            style={{ backgroundColor: '#f3f4f6', color: '#374151' }}
+          >
+            次のサイクル
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* レポート本体 */}
       <div className="bg-white p-6 rounded-lg border border-border shadow-sm">
-        {/* Header */}
+        {/* ヘッダー */}
         <div className="mb-4 border-b-2 pb-3" style={{ borderColor: "#333" }}>
           <h2 className="text-xl font-bold text-center mb-2" style={{ color: "#000" }}>
             車両運行日報
@@ -306,29 +340,20 @@ export default function MonthlyReport() {
           </div>
         </div>
 
-        {/* Table */}
+        {/* テーブル */}
         <div className="overflow-x-auto mb-4">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
-                <th className="border px-2 py-2 font-bold text-xs" style={{ backgroundColor: "#e5e5e5", borderColor: "#333", color: "#000" }}>
-                  日付
-                </th>
-                <th className="border px-2 py-2 font-bold text-xs" style={{ backgroundColor: "#e5e5e5", borderColor: "#333", color: "#000" }}>
-                  出発時間
-                </th>
-                <th className="border px-2 py-2 font-bold text-xs" style={{ backgroundColor: "#e5e5e5", borderColor: "#333", color: "#000" }}>
-                  終了時間
-                </th>
-                <th className="border px-2 py-2 font-bold text-xs" style={{ backgroundColor: "#e5e5e5", borderColor: "#333", color: "#000" }}>
-                  出発距離
-                </th>
-                <th className="border px-2 py-2 font-bold text-xs" style={{ backgroundColor: "#e5e5e5", borderColor: "#333", color: "#000" }}>
-                  終了距離
-                </th>
-                <th className="border px-2 py-2 font-bold text-xs" style={{ backgroundColor: "#e5e5e5", borderColor: "#333", color: "#000" }}>
-                  走行距離
-                </th>
+                {["日付", "出発時間", "終了時間", "出発距離", "終了距離", "走行距離"].map((h) => (
+                  <th
+                    key={h}
+                    className="border px-2 py-2 font-bold text-xs"
+                    style={{ backgroundColor: "#e5e5e5", borderColor: "#333", color: "#000" }}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -347,14 +372,15 @@ export default function MonthlyReport() {
                   const depDist =
                     typeof record.departureDistance === "string"
                       ? parseFloat(record.departureDistance)
-                      : record.departureDistance;
+                      : (record.departureDistance as number);
                   const arrDist =
                     record.arrivalDistance == null
                       ? null
                       : typeof record.arrivalDistance === "string"
                         ? parseFloat(record.arrivalDistance)
-                        : record.arrivalDistance;
+                        : (record.arrivalDistance as number);
                   const distance = calculateDistance(depDist, arrDist);
+                  const incomplete = arrDist == null;
 
                   return (
                     <tr key={idx}>
@@ -364,17 +390,17 @@ export default function MonthlyReport() {
                       <td className="border px-2 py-1 text-xs text-center" style={{ color: "#000", borderColor: "#333" }}>
                         {record.departureTime}
                       </td>
-                      <td className="border px-2 py-1 text-xs text-center" style={{ color: arrDist == null ? "#999" : "#000", borderColor: "#333" }}>
-                        {record.arrivalTime ?? '未入力'}
+                      <td className="border px-2 py-1 text-xs text-center" style={{ color: incomplete ? "#f59e0b" : "#000", borderColor: "#333" }}>
+                        {record.arrivalTime ?? "未入力"}
                       </td>
                       <td className="border px-2 py-1 text-xs text-right" style={{ color: "#000", borderColor: "#333" }}>
                         {depDist.toFixed(1)}
                       </td>
-                      <td className="border px-2 py-1 text-xs text-right" style={{ color: arrDist == null ? "#999" : "#000", borderColor: "#333" }}>
-                        {arrDist != null ? arrDist.toFixed(1) : '-'}
+                      <td className="border px-2 py-1 text-xs text-right" style={{ color: incomplete ? "#f59e0b" : "#000", borderColor: "#333" }}>
+                        {arrDist != null ? arrDist.toFixed(1) : "-"}
                       </td>
-                      <td className="border px-2 py-1 text-xs text-right font-semibold" style={{ color: arrDist == null ? "#999" : "#000", borderColor: "#333" }}>
-                        {arrDist != null ? distance.toFixed(1) : '-'}
+                      <td className="border px-2 py-1 text-xs text-right font-semibold" style={{ color: incomplete ? "#f59e0b" : "#000", borderColor: "#333" }}>
+                        {arrDist != null ? distance.toFixed(1) : "-"}
                       </td>
                     </tr>
                   );
@@ -384,7 +410,7 @@ export default function MonthlyReport() {
           </table>
         </div>
 
-        {/* Total Section */}
+        {/* 合計 */}
         <div className="border-t-2 pt-3" style={{ borderColor: "#333" }}>
           <div className="flex justify-between items-center">
             <p style={{ color: "#000" }}>
@@ -397,7 +423,7 @@ export default function MonthlyReport() {
         </div>
       </div>
 
-      {/* Action Buttons */}
+      {/* アクションボタン */}
       <div className="mt-8">
         <div className="grid grid-cols-2 gap-3">
           <button

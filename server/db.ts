@@ -256,6 +256,20 @@ export async function updateDailyRecord(
 }
 
 /**
+ * ユーザーの全サイクル一覧を取得（新しい順）
+ */
+export async function getAllCycles(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db
+    .select()
+    .from(monthlyCycles)
+    .where(eq(monthlyCycles.userId, userId))
+    .orderBy(monthlyCycles.cycleStartDate);
+}
+
+/**
  * 日次記録を削除
  */
 export async function deleteDailyRecord(recordId: number) {

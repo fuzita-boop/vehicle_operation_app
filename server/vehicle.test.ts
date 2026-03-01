@@ -11,6 +11,7 @@ vi.mock("./db", () => ({
   deleteDailyRecord: vi.fn(),
   updateDriver: vi.fn(),
   updateVehicle: vi.fn(),
+  getAllCycles: vi.fn(),
 }));
 
 import { appRouter } from "./routers";
@@ -214,5 +215,59 @@ describe("vehicle.addRecord", () => {
       300,
       null
     );
+  });
+});
+
+describe("vehicle.getCycles", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns all cycles for the authenticated user", async () => {
+    const mockGetAllCycles = vi.mocked(db.getAllCycles);
+    const fakeCycles = [
+      {
+        id: 1,
+        userId: 1,
+        driverId: 1,
+        vehicleId: 1,
+        cycleStartDate: new Date("2026-01-16"),
+        cycleEndDate: new Date("2026-02-15"),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 2,
+        userId: 1,
+        driverId: 1,
+        vehicleId: 1,
+        cycleStartDate: new Date("2026-02-16"),
+        cycleEndDate: new Date("2026-03-15"),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+    mockGetAllCycles.mockResolvedValue(fakeCycles as any);
+
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.vehicle.getCycles();
+
+    expect(result).toHaveLength(2);
+    expect(mockGetAllCycles).toHaveBeenCalledWith(1);
+  });
+
+  it("returns empty array when no cycles exist", async () => {
+    const mockGetAllCycles = vi.mocked(db.getAllCycles);
+    mockGetAllCycles.mockResolvedValue([]);
+
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.vehicle.getCycles();
+
+    expect(result).toHaveLength(0);
+    expect(mockGetAllCycles).toHaveBeenCalledWith(1);
   });
 });
