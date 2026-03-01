@@ -247,8 +247,16 @@ export default function MonthlyReport() {
 </div>
 <script>
   window.onload = function() {
-    setTimeout(function() { window.print(); }, 300);
+    setTimeout(function() {
+      window.print();
+      // After print dialog closes, close this window
+      setTimeout(function() { window.close(); }, 500);
+    }, 300);
   };
+  // Also close on afterprint event (fires after print dialog is dismissed)
+  window.addEventListener('afterprint', function() {
+    window.close();
+  });
 <\/script>
 </body>
 </html>`;
