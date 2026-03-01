@@ -14,9 +14,7 @@ function toDateString(val: string | Date | unknown): string {
     return `${y}-${m}-${d}`;
   }
   const str = String(val);
-  // If already YYYY-MM-DD format
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-  // If ISO string like "2026-02-28T15:00:00.000Z"
   const parsed = new Date(str);
   if (!isNaN(parsed.getTime())) {
     const y = parsed.getFullYear();
@@ -39,14 +37,12 @@ interface DailyRecordData {
   updatedAt?: Date;
 }
 
-/** 出発フォームの状態 */
 interface DepartureForm {
   recordDate: string;
   departureTime: string;
   departureDistance: string;
 }
 
-/** 帰着フォームの状態（編集用） */
 interface ArrivalEditForm {
   arrivalTime: string;
   arrivalDistance: string;
@@ -62,8 +58,9 @@ export default function DailyRecord() {
   const [records, setRecords] = useState<DailyRecordData[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<DailyRecordData | null>(null);
-  // 帰着情報追加モード（記録IDをキーにして管理）
-  const [arrivalEditId, setArrivalEditId] = useState<number | null>(null);
+
+  // 帰着フォームの状態（出発フォームの下に表示）
+  const [arrivalTargetRecord, setArrivalTargetRecord] = useState<DailyRecordData | null>(null);
   const [arrivalEditForm, setArrivalEditForm] = useState<ArrivalEditForm>({ arrivalTime: "", arrivalDistance: "" });
 
   const { data: currentCycle } = trpc.vehicle.getCurrentCycle.useQuery();
@@ -107,7 +104,7 @@ export default function DailyRecord() {
     return sum + (d ?? 0);
   }, 0);
 
-  /** 出発時のみ保存 */
+  /** 出発記録を保存 */
   const handleDeparture = async () => {
     const depDist = parseFloat(departureForm.departureDistance);
 
@@ -148,11 +145,28 @@ export default function DailyRecord() {
     }
   };
 
-  /** 帰着情報の追加保存 */
+  /** 帰着ボタン押下：対象記録をセットして帰着フォームを出発フォームの下に表示 */
+  const handleOpenArrival = (record: DailyRecordData) => {
+    setArrivalTargetRecord(record);
+    setArrivalEditForm({ arrivalTime: "", arrivalDistance: "" });
+    setEditingId(null);
+    setEditForm(null);
+    // フォームまでスクロール
+    setTimeout(() => {
+      document.getElementById("arrival-form-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
+
+  /** 帰着フォームを閉じる */
+  const handleCancelArrival = () => {
+    setArrivalTargetRecord(null);
+    setArrivalEditForm({ arrivalTime: "", arrivalDistance: "" });
+  };
+
+  /** 帰着情報を保存 */
   const handleSaveArrival = async () => {
-    if (!arrivalEditId) return;
+    if (!arrivalTargetRecord?.id) return;
     const arrDist = parseFloat(arrivalEditForm.arrivalDistance);
-    const record = records.find(r => r.id === arrivalEditId);
 
     if (!arrivalEditForm.arrivalTime) {
       alert("終了時間を入力してください");
@@ -162,20 +176,21 @@ export default function DailyRecord() {
       alert("終了時走行距離を正しく入力してください");
       return;
     }
-    if (record) {
-      const depDist = typeof record.departureDistance === 'string' ? parseFloat(record.departureDistance) : record.departureDistance as number;
-      if (arrDist < depDist) {
-        if (!confirm(`終了走行距離(${arrDist})が出発走行距離(${depDist})より小さいですが、保存しますか？`)) return;
-      }
+
+    const depDist = typeof arrivalTargetRecord.departureDistance === 'string'
+      ? parseFloat(arrivalTargetRecord.departureDistance)
+      : arrivalTargetRecord.departureDistance as number;
+    if (arrDist < depDist) {
+      if (!confirm(`終了走行距離(${arrDist})が出発走行距離(${depDist})より小さいですが、保存しますか？`)) return;
     }
 
     try {
       await updateRecordMutation.mutateAsync({
-        recordId: arrivalEditId,
+        recordId: arrivalTargetRecord.id,
         arrivalTime: arrivalEditForm.arrivalTime,
         arrivalDistance: arrDist,
       });
-      setArrivalEditId(null);
+      setArrivalTargetRecord(null);
       setArrivalEditForm({ arrivalTime: "", arrivalDistance: "" });
       await refetch();
       alert("帰着情報を保存しました");
@@ -200,8 +215,7 @@ export default function DailyRecord() {
           : record.arrivalDistance,
       arrivalTime: record.arrivalTime ?? null,
     });
-    // 帰着追加モードを閉じる
-    setArrivalEditId(null);
+    setArrivalTargetRecord(null);
   };
 
   const handleCancelEdit = () => {
@@ -256,6 +270,8 @@ export default function DailyRecord() {
     if (!confirm("この記録を削除してもよろしいですか？")) return;
     try {
       await deleteRecordMutation.mutateAsync({ recordId });
+      // 削除した記録が帰着フォームの対象だった場合は閉じる
+      if (arrivalTargetRecord?.id === recordId) handleCancelArrival();
       await refetch();
       alert("記録を削除しました");
     } catch (error) {
@@ -266,17 +282,28 @@ export default function DailyRecord() {
 
   const incompleteCount = records.filter(r => r.arrivalTime == null).length;
 
+  // 帰着対象記録の出発距離
+  const arrivalTargetDepDist = arrivalTargetRecord
+    ? (typeof arrivalTargetRecord.departureDistance === 'string'
+        ? parseFloat(arrivalTargetRecord.departureDistance)
+        : arrivalTargetRecord.departureDistance as number)
+    : 0;
+
   return (
     <VehicleLayout title="日次記録入力" subtitle="毎日の運行記録を入力してください">
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* 出発記録フォーム */}
-        <div className="lg:col-span-2">
+        {/* 左カラム：出発フォーム＋帰着フォーム */}
+        <div className="lg:col-span-2 space-y-4">
+
+          {/* 出発記録フォーム */}
           <div className="card-elegant">
-            <div className="flex items-center gap-2 mb-6">
+            <div className="flex items-center gap-2 mb-4">
               <LogIn className="h-5 w-5" style={{ color: '#1d4ed8' }} />
               <h2 className="text-lg font-semibold text-foreground">出発記録</h2>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">出発時間と走行距離を入力して保存してください。帰着後に終了情報を追加できます。</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              出発時間と走行距離を入力して保存してください。帰着後に終了情報を追加できます。
+            </p>
 
             <div className="space-y-4">
               <div>
@@ -290,7 +317,9 @@ export default function DailyRecord() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">出発時間 <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  出発時間 <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="time"
                   value={departureForm.departureTime}
@@ -300,7 +329,9 @@ export default function DailyRecord() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">出発時走行距離 (km) <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  出発時走行距離 (km) <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="number"
                   step="0.1"
@@ -315,7 +346,7 @@ export default function DailyRecord() {
               <button
                 onClick={handleDeparture}
                 disabled={addRecordMutation.isPending}
-                className="w-full mt-4 px-4 py-3 font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
+                className="w-full mt-2 px-4 py-3 font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
                 style={{ backgroundColor: '#1d4ed8' }}
               >
                 <LogIn className="h-5 w-5" />
@@ -323,9 +354,100 @@ export default function DailyRecord() {
               </button>
             </div>
           </div>
+
+          {/* 帰着フォーム（出発フォームの下に表示） */}
+          {arrivalTargetRecord && (
+            <div
+              id="arrival-form-section"
+              className="card-elegant border-2"
+              style={{ borderColor: '#f59e0b' }}
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <LogOut className="h-5 w-5" style={{ color: '#d97706' }} />
+                <h2 className="text-lg font-semibold" style={{ color: '#d97706' }}>帰着記録</h2>
+              </div>
+
+              {/* 対象の出発情報を参照表示 */}
+              <div
+                className="rounded-lg p-3 mb-4 text-sm space-y-1"
+                style={{ backgroundColor: '#fef3c7', border: '1px solid #fcd34d' }}
+              >
+                <p className="font-medium text-xs mb-2" style={{ color: '#92400e' }}>出発情報（参照）</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <p className="text-xs" style={{ color: '#78350f' }}>日付</p>
+                    <p className="font-semibold" style={{ color: '#78350f' }}>
+                      {new Date(arrivalTargetRecord.recordDate).toLocaleDateString("ja-JP")}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs" style={{ color: '#78350f' }}>出発時間</p>
+                    <p className="font-semibold" style={{ color: '#78350f' }}>
+                      {arrivalTargetRecord.departureTime}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs" style={{ color: '#78350f' }}>出発距離</p>
+                    <p className="font-semibold" style={{ color: '#78350f' }}>
+                      {arrivalTargetDepDist.toFixed(1)} km
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    終了時間 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={arrivalEditForm.arrivalTime}
+                    onChange={(e) => setArrivalEditForm({ ...arrivalEditForm, arrivalTime: e.target.value })}
+                    className="input-elegant"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    終了時走行距離 (km) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={arrivalEditForm.arrivalDistance}
+                    placeholder="例: 12400.0"
+                    onChange={(e) => setArrivalEditForm({ ...arrivalEditForm, arrivalDistance: e.target.value })}
+                    className="input-elegant"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                  <button
+                    onClick={handleSaveArrival}
+                    disabled={updateRecordMutation.isPending}
+                    className="w-full px-4 py-3 font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
+                    style={{ backgroundColor: '#d97706' }}
+                  >
+                    <Check className="h-5 w-5" />
+                    {updateRecordMutation.isPending ? "保存中..." : "帰着記録を保存"}
+                  </button>
+                  <button
+                    onClick={handleCancelArrival}
+                    className="w-full px-4 py-3 font-bold text-lg rounded-lg border-2 transition-all flex items-center justify-center gap-2"
+                    style={{ borderColor: '#d1d5db', color: '#6b7280' }}
+                  >
+                    <X className="h-5 w-5" />
+                    キャンセル
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* サマリーカード */}
+        {/* 右カラム：サマリーカード */}
         <div className="card-elegant h-fit">
           <h3 className="text-lg font-semibold text-foreground mb-4">月次合計</h3>
           <div className="space-y-3">
@@ -363,7 +485,7 @@ export default function DailyRecord() {
               const distance = calculateDistance(rDepDist, rArrDist);
               const isIncomplete = record.arrivalTime == null;
               const isEditing = editingId === record.id;
-              const isAddingArrival = arrivalEditId === record.id;
+              const isArrivalTarget = arrivalTargetRecord?.id === record.id;
 
               // 全体編集モード
               if (isEditing && editForm) {
@@ -405,10 +527,7 @@ export default function DailyRecord() {
                         <input
                           type="date"
                           value={toDateString(editForm.recordDate)}
-                          onChange={(e) => {
-                            const newDate = e.target.value;
-                            setEditForm(prev => prev ? { ...prev, recordDate: newDate } : prev);
-                          }}
+                          onChange={(e) => setEditForm(prev => prev ? { ...prev, recordDate: e.target.value } : prev)}
                           className="input-elegant text-sm"
                         />
                       </div>
@@ -444,12 +563,7 @@ export default function DailyRecord() {
                           min="0"
                           value={eDepDist === 0 ? "" : eDepDist}
                           placeholder="0"
-                          onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              departureDistance: e.target.value === "" ? 0 : parseFloat(e.target.value) || 0,
-                            })
-                          }
+                          onChange={(e) => setEditForm({ ...editForm, departureDistance: e.target.value === "" ? 0 : parseFloat(e.target.value) || 0 })}
                           className="input-elegant text-sm"
                         />
                       </div>
@@ -461,72 +575,7 @@ export default function DailyRecord() {
                           min="0"
                           value={eArrDist == null ? "" : eArrDist === 0 ? "" : eArrDist}
                           placeholder="未入力"
-                          onChange={(e) =>
-                            setEditForm({
-                              ...editForm,
-                              arrivalDistance: e.target.value === "" ? null : parseFloat(e.target.value) || 0,
-                            })
-                          }
-                          className="input-elegant text-sm"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-
-              // 帰着情報追加モード
-              if (isAddingArrival) {
-                return (
-                  <div key={record.id || idx} className="card-elegant border-2 p-4" style={{ borderColor: '#f59e0b' }}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <LogOut className="h-4 w-4" style={{ color: '#d97706' }} />
-                        <h4 className="font-semibold" style={{ color: '#d97706' }}>帰着情報を入力</h4>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleSaveArrival}
-                          disabled={updateRecordMutation.isPending}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium text-white transition-colors disabled:opacity-50"
-                          style={{ backgroundColor: '#d97706' }}
-                        >
-                          <Check className="h-4 w-4" />
-                          {updateRecordMutation.isPending ? "保存中..." : "帰着保存"}
-                        </button>
-                        <button
-                          onClick={() => { setArrivalEditId(null); setArrivalEditForm({ arrivalTime: "", arrivalDistance: "" }); }}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium text-white transition-colors"
-                          style={{ backgroundColor: '#6b7280' }}
-                        >
-                          <X className="h-4 w-4" />
-                          取消
-                        </button>
-                      </div>
-                    </div>
-                    <div className="text-sm mb-3" style={{ color: '#555' }}>
-                      出発: {new Date(record.recordDate).toLocaleDateString("ja-JP")} {record.departureTime}
-                      　出発距離: {rDepDist.toFixed(1)} km
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium mb-1" style={{ color: '#555' }}>終了時間 *</label>
-                        <input
-                          type="time"
-                          value={arrivalEditForm.arrivalTime}
-                          onChange={(e) => setArrivalEditForm({ ...arrivalEditForm, arrivalTime: e.target.value })}
-                          className="input-elegant text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium mb-1" style={{ color: '#555' }}>終了走行距離 (km) *</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          value={arrivalEditForm.arrivalDistance}
-                          placeholder="例: 12400.0"
-                          onChange={(e) => setArrivalEditForm({ ...arrivalEditForm, arrivalDistance: e.target.value })}
+                          onChange={(e) => setEditForm({ ...editForm, arrivalDistance: e.target.value === "" ? null : parseFloat(e.target.value) || 0 })}
                           className="input-elegant text-sm"
                         />
                       </div>
@@ -539,14 +588,25 @@ export default function DailyRecord() {
               return (
                 <div
                   key={record.id || idx}
-                  className="card-elegant p-4"
-                  style={isIncomplete ? { borderLeft: '4px solid #f59e0b' } : {}}
+                  className="card-elegant p-4 transition-all"
+                  style={
+                    isArrivalTarget
+                      ? { borderLeft: '4px solid #d97706', backgroundColor: '#fffbeb' }
+                      : isIncomplete
+                        ? { borderLeft: '4px solid #f59e0b' }
+                        : {}
+                  }
                 >
                   {isIncomplete && (
                     <div className="flex items-center gap-1 mb-2">
                       <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
                         帰着未入力
                       </span>
+                      {isArrivalTarget && (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: '#fed7aa', color: '#9a3412' }}>
+                          ↑ 帰着入力中
+                        </span>
+                      )}
                     </div>
                   )}
                   <div className="flex items-center justify-between">
@@ -585,14 +645,9 @@ export default function DailyRecord() {
                     <div className="flex gap-1 ml-3 shrink-0">
                       {isIncomplete && (
                         <button
-                          onClick={() => {
-                            if (!record.id) return;
-                            setArrivalEditId(record.id);
-                            setArrivalEditForm({ arrivalTime: "", arrivalDistance: "" });
-                            setEditingId(null);
-                          }}
+                          onClick={() => handleOpenArrival(record)}
                           className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium text-white transition-colors"
-                          style={{ backgroundColor: '#d97706' }}
+                          style={{ backgroundColor: isArrivalTarget ? '#b45309' : '#d97706' }}
                           title="帰着情報を入力"
                         >
                           <LogOut className="h-3 w-3" />
