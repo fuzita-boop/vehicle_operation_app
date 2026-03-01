@@ -72,10 +72,10 @@ export const appRouter = router({
       arrivalDistance: number;
     }).mutation(async ({ input }) => {
       const { addDailyRecord } = await import("./db");
-      const recordDate = new Date(input.recordDate);
+      // Pass YYYY-MM-DD string directly to avoid timezone shift
       return await addDailyRecord(
         input.cycleId,
-        recordDate,
+        input.recordDate,
         input.departureTime,
         input.arrivalTime,
         input.departureDistance,
@@ -96,7 +96,8 @@ export const appRouter = router({
     }).mutation(async ({ input }) => {
       const { updateDailyRecord } = await import("./db");
       const data: any = {};
-      if (input.recordDate !== undefined) data.recordDate = new Date(input.recordDate);
+      // Pass YYYY-MM-DD string directly to avoid timezone shift
+      if (input.recordDate !== undefined) data.recordDate = input.recordDate;
       if (input.departureTime !== undefined) data.departureTime = input.departureTime;
       if (input.arrivalTime !== undefined) data.arrivalTime = input.arrivalTime;
       if (input.departureDistance !== undefined) data.departureDistance = input.departureDistance;

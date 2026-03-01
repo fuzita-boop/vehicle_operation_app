@@ -169,9 +169,16 @@ export async function getOrCreateMonthlyCycle(userId: number, driverId: number, 
 /**
  * 日次記録の追加
  */
+/** Parse YYYY-MM-DD to Date at noon UTC to avoid timezone day-shift */
+function parseDateString(dateStr: string): Date {
+  // Split the string to avoid timezone interpretation
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+}
+
 export async function addDailyRecord(
   cycleId: number,
-  recordDate: Date,
+  recordDate: string,
   departureTime: string,
   arrivalTime: string,
   departureDistance: number,
@@ -182,7 +189,7 @@ export async function addDailyRecord(
 
   const result = await db.insert(dailyRecords).values({
     cycleId,
-    recordDate,
+    recordDate: parseDateString(recordDate),
     departureTime,
     arrivalTime,
     departureDistance: departureDistance.toString(),
@@ -228,7 +235,7 @@ export async function updateVehicle(vehicleId: number, vehicleNumber: string) {
 export async function updateDailyRecord(
   recordId: number,
   data: {
-    recordDate?: Date;
+    recordDate?: string;
     departureTime?: string;
     arrivalTime?: string;
     departureDistance?: number;
@@ -239,7 +246,7 @@ export async function updateDailyRecord(
   if (!db) throw new Error("Database not available");
 
   const updateSet: Record<string, unknown> = {};
-  if (data.recordDate !== undefined) updateSet.recordDate = data.recordDate;
+  if (data.recordDate !== undefined) updateSet.recordDate = parseDateString(data.recordDate);
   if (data.departureTime !== undefined) updateSet.departureTime = data.departureTime;
   if (data.arrivalTime !== undefined) updateSet.arrivalTime = data.arrivalTime;
   if (data.departureDistance !== undefined) updateSet.departureDistance = data.departureDistance.toString();

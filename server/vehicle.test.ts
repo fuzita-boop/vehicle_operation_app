@@ -67,7 +67,7 @@ describe("vehicle.updateRecord", () => {
 
     expect(result).toEqual({ success: true });
     expect(mockUpdateDailyRecord).toHaveBeenCalledWith(1, {
-      recordDate: expect.any(Date),
+      recordDate: "2026-02-20",
       departureTime: "08:00",
       arrivalTime: "17:00",
       departureDistance: 100,
@@ -136,7 +136,7 @@ describe("vehicle.addRecord", () => {
 
     expect(mockAddDailyRecord).toHaveBeenCalledWith(
       1,
-      expect.any(Date),
+      "2026-02-20",
       "08:00",
       "17:00",
       100,
