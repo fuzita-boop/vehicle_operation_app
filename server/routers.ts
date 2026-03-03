@@ -114,6 +114,27 @@ export const appRouter = router({
       const { getAllCycles } = await import("./db");
       return await getAllCycles(ctx.user.id);
     }),
+    getIncompleteCount: protectedProcedure.query(async ({ ctx }) => {
+      const { getOrCreateDriver, getOrCreateVehicle, getOrCreateMonthlyCycle, getDailyRecordsByCycle } = await import("./db");
+      const driver = await getOrCreateDriver(ctx.user.id, "");
+      const vehicle = await getOrCreateVehicle(ctx.user.id, "");
+      if (!driver.id || !vehicle.id) return { count: 0 };
+      const today = new Date();
+      const day = today.getDate();
+      let cycleStart, cycleEnd;
+      if (day >= 16) {
+        cycleStart = new Date(today.getFullYear(), today.getMonth(), 16);
+        cycleEnd = new Date(today.getFullYear(), today.getMonth() + 1, 15);
+      } else {
+        cycleStart = new Date(today.getFullYear(), today.getMonth() - 1, 16);
+        cycleEnd = new Date(today.getFullYear(), today.getMonth(), 15);
+      }
+      const cycle = await getOrCreateMonthlyCycle(ctx.user.id, driver.id, vehicle.id, cycleStart, cycleEnd);
+      if (!cycle?.id) return { count: 0 };
+      const records = await getDailyRecordsByCycle(cycle.id);
+      const count = records.filter((r: any) => r.arrivalTime == null).length;
+      return { count };
+    }),
   }),
 });
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import VehicleLayout from "@/components/VehicleLayout";
 import { trpc } from "@/lib/trpc";
-import { Calendar, Plus, FileText } from "lucide-react";
+import { Calendar, Plus, FileText, AlertTriangle } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Home() {
@@ -14,6 +14,7 @@ export default function Home() {
   const { data: driver } = trpc.vehicle.getDriver.useQuery();
   const { data: vehicle } = trpc.vehicle.getVehicle.useQuery();
   const { data: currentCycle } = trpc.vehicle.getCurrentCycle.useQuery();
+  const { data: incompleteData } = trpc.vehicle.getIncompleteCount.useQuery();
 
   // Mutations
   const setDriverMutation = trpc.vehicle.setDriver.useMutation();
@@ -53,11 +54,32 @@ export default function Home() {
     ? new Date(currentCycle.cycleEndDate).toLocaleDateString("ja-JP")
     : "-";
 
+  const incompleteCount = incompleteData?.count ?? 0;
+  const hasIncomplete = incompleteCount > 0;
+
   return (
     <VehicleLayout
       title="車両運行日報"
       subtitle={`現在のサイクル: ${cycleStartDate} 〜 ${cycleEndDate}`}
     >
+      {/* 帰着未入力の警告バナー */}
+      {hasIncomplete && (
+        <div
+          className="mb-6 flex items-center gap-3 rounded-xl px-5 py-4 shadow-sm"
+          style={{ backgroundColor: '#fff7ed', border: '2px solid #f97316' }}
+        >
+          <AlertTriangle className="h-6 w-6 shrink-0" style={{ color: '#ea580c' }} />
+          <div>
+            <p className="font-bold" style={{ color: '#9a3412' }}>
+              帰着未入力の記録が {incompleteCount} 件あります
+            </p>
+            <p className="text-sm mt-0.5" style={{ color: '#c2410c' }}>
+              「本日の記録を入力」から帰着情報を追加してください
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Driver Information Card */}
         <div className="card-elegant">
@@ -180,12 +202,52 @@ export default function Home() {
 
       {/* Action Buttons */}
       <div className="mt-8 grid gap-4 md:grid-cols-2">
-        <Link href="/daily-record" className="card-elegant text-center py-8 hover:shadow-lg transition-all cursor-pointer block">
-          <Plus className="h-8 w-8 text-accent mx-auto mb-2" />
-          <h3 className="text-lg font-semibold text-foreground">本日の記録を入力</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            出発時間・終了時間・走行距離を記録
-          </p>
+        {/* 本日の記録を入力カード：帰着未入力があればオレンジ色 */}
+        <Link
+          href="/daily-record"
+          className="text-center py-8 hover:shadow-lg transition-all cursor-pointer block rounded-xl"
+          style={
+            hasIncomplete
+              ? {
+                  backgroundColor: '#fff7ed',
+                  border: '2px solid #f97316',
+                  boxShadow: '0 4px 16px rgba(249,115,22,0.15)',
+                }
+              : {
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                }
+          }
+        >
+          {hasIncomplete ? (
+            <AlertTriangle className="h-8 w-8 mx-auto mb-2" style={{ color: '#ea580c' }} />
+          ) : (
+            <Plus className="h-8 w-8 text-accent mx-auto mb-2" />
+          )}
+          <h3
+            className="text-lg font-semibold"
+            style={{ color: hasIncomplete ? '#9a3412' : 'var(--foreground)' }}
+          >
+            本日の記録を入力
+          </h3>
+          {hasIncomplete ? (
+            <div className="mt-2 space-y-1">
+              <span
+                className="inline-block text-sm font-bold px-3 py-1 rounded-full"
+                style={{ backgroundColor: '#fed7aa', color: '#9a3412' }}
+              >
+                ⚠ 帰着未入力 {incompleteCount}件
+              </span>
+              <p className="text-sm mt-1" style={{ color: '#c2410c' }}>
+                帰着情報を追加してください
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground mt-1">
+              出発時間・終了時間・走行距離を記録
+            </p>
+          )}
         </Link>
 
         <Link href="/monthly-report" className="card-elegant text-center py-8 hover:shadow-lg transition-all cursor-pointer block">
