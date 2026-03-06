@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, drivers, vehicles, monthlyCycles, dailyRecords, pushSubscriptions } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -206,7 +206,11 @@ export async function getDailyRecordsByCycle(cycleId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  return await db.select().from(dailyRecords).where(eq(dailyRecords.cycleId, cycleId));
+  return await db
+    .select()
+    .from(dailyRecords)
+    .where(eq(dailyRecords.cycleId, cycleId))
+    .orderBy(asc(dailyRecords.recordDate));
 }
 
 /**

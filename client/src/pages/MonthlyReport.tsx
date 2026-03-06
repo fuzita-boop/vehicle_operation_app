@@ -167,13 +167,14 @@ export default function MonthlyReport() {
       const distance = calculateDistance(depDist, arrDist);
       const dateStr = new Date(record.recordDate).toLocaleDateString("ja-JP");
 
+      const incompleteClass = arrDist == null ? ' class="incomplete"' : '';
       return `<tr>
         <td>${dateStr}</td>
         <td style="text-align:center">${record.departureTime}</td>
-        <td style="text-align:center">${arrDist != null ? record.arrivalTime ?? "未入力" : "未入力"}</td>
+        <td style="text-align:center"${incompleteClass}>${arrDist != null ? record.arrivalTime ?? "未入力" : "未入力"}</td>
         <td style="text-align:right">${depDist.toFixed(1)}</td>
-        <td style="text-align:right">${arrDist != null ? arrDist.toFixed(1) : "-"}</td>
-        <td style="text-align:right;font-weight:600">${arrDist != null ? distance.toFixed(1) : "-"}</td>
+        <td style="text-align:right"${incompleteClass}>${arrDist != null ? arrDist.toFixed(1) : "-"}</td>
+        <td style="text-align:right;font-weight:600"${incompleteClass}>${arrDist != null ? distance.toFixed(1) : "-"}</td>
       </tr>`;
     }).join("");
 
@@ -189,55 +190,152 @@ export default function MonthlyReport() {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>車両運行日報</title>
 <style>
-  @page { size: A4 portrait; margin: 8mm; }
+  @page {
+    size: A4 portrait;
+    margin: 15mm 12mm 15mm 12mm;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
-    width: 100%; height: 100%;
-    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif;
-    font-size: 11px; line-height: 1.3; color: #000; background: #fff;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    width: 100%;
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #000;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
-  .page { width: 194mm; max-height: 281mm; margin: 0 auto; overflow: hidden; }
-  .title { text-align: center; font-size: 18px; font-weight: 700; padding: 4px 0; border-bottom: 2px solid #000; margin-bottom: 6px; }
-  .info-row { display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 11px; }
-  .info-row .label { color: #555; font-size: 10px; }
-  .info-row .value { font-weight: 600; }
-  .period { text-align: center; font-size: 10px; color: #555; margin-bottom: 6px; }
-  table { width: 100%; border-collapse: collapse; font-size: 10px; table-layout: fixed; }
-  th, td { border: 1px solid #000; padding: 3px 4px; overflow: hidden; white-space: nowrap; }
-  th { background-color: #e5e5e5; font-weight: 700; text-align: center; font-size: 10px; }
-  .summary { border-top: 2px solid #000; margin-top: 6px; padding-top: 4px; display: flex; justify-content: space-between; font-size: 11px; }
-  .summary .total-value { font-size: 14px; font-weight: 700; }
-  .footer { border-top: 1px solid #ccc; margin-top: 4px; padding-top: 3px; text-align: center; font-size: 9px; color: #888; }
+  .title {
+    text-align: center;
+    font-size: 16pt;
+    font-weight: 700;
+    padding-bottom: 6pt;
+    border-bottom: 2pt solid #000;
+    margin-bottom: 8pt;
+    letter-spacing: 0.1em;
+  }
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4pt 16pt;
+    margin-bottom: 4pt;
+    font-size: 10pt;
+  }
+  .info-label { color: #555; font-size: 9pt; margin-bottom: 1pt; }
+  .info-value { font-weight: 700; font-size: 11pt; border-bottom: 1pt solid #ccc; padding-bottom: 2pt; }
+  .period {
+    text-align: center;
+    font-size: 10pt;
+    color: #444;
+    margin: 6pt 0 10pt;
+    padding: 4pt;
+    background: #f5f5f5;
+    border-radius: 3pt;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+    table-layout: fixed;
+    page-break-inside: auto;
+  }
+  thead { display: table-header-group; }
+  tbody tr { page-break-inside: avoid; }
+  th {
+    background-color: #d0d0d0;
+    font-weight: 700;
+    text-align: center;
+    font-size: 9pt;
+    border: 1pt solid #333;
+    padding: 4pt 3pt;
+  }
+  td {
+    border: 1pt solid #555;
+    padding: 4pt 4pt;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 10pt;
+  }
+  tr:nth-child(even) td { background-color: #fafafa; }
+  .incomplete { color: #b45309; font-style: italic; }
+  .summary {
+    border-top: 2pt solid #000;
+    margin-top: 10pt;
+    padding-top: 6pt;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11pt;
+  }
+  .summary .total-label { color: #444; font-size: 10pt; }
+  .summary .total-value { font-size: 15pt; font-weight: 700; }
+  .footer {
+    border-top: 1pt solid #ccc;
+    margin-top: 8pt;
+    padding-top: 4pt;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8pt;
+    color: #888;
+  }
+  .seal-area {
+    display: flex;
+    gap: 8pt;
+    margin-top: 10pt;
+    justify-content: flex-end;
+  }
+  .seal-box {
+    border: 1pt solid #555;
+    width: 40pt;
+    height: 40pt;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8pt;
+    color: #888;
+    flex-direction: column;
+    gap: 2pt;
+  }
 </style>
 </head>
 <body>
-<div class="page">
   <div class="title">車両運行日報</div>
-  <div class="info-row">
-    <div><span class="label">運転者名: </span><span class="value">${driverName || "-"}</span></div>
-    <div><span class="label">車両番号: </span><span class="value">${vehicleNumber || "-"}</span></div>
+  <div class="info-grid">
+    <div>
+      <div class="info-label">運転者名</div>
+      <div class="info-value">${driverName || "　"}</div>
+    </div>
+    <div>
+      <div class="info-label">車両番号</div>
+      <div class="info-value">${vehicleNumber || "　"}</div>
+    </div>
   </div>
-  <div class="period">対象期間: ${cycleInfo.start} 〜 ${cycleInfo.end}</div>
+  <div class="period">対象期間：${cycleInfo.start} 〜 ${cycleInfo.end}</div>
   <table>
     <thead>
       <tr>
-        <th style="width:18%">日付</th>
+        <th style="width:16%">日付</th>
         <th style="width:14%">出発時間</th>
         <th style="width:14%">終了時間</th>
-        <th style="width:18%">出発距離</th>
-        <th style="width:18%">終了距離</th>
-        <th style="width:18%">走行距離</th>
+        <th style="width:19%">出発時距離(km)</th>
+        <th style="width:19%">終了時距離(km)</th>
+        <th style="width:18%">走行距離(km)</th>
       </tr>
     </thead>
     <tbody>${emptyRow}${tableRows}</tbody>
   </table>
   <div class="summary">
-    <div>記録日数: <span class="total-value">${records.length}日</span></div>
-    <div>総走行距離: <span class="total-value">${totalDistance.toFixed(1)} km</span></div>
+    <div><span class="total-label">記録日数：</span><span class="total-value">${records.length} 日</span></div>
+    <div><span class="total-label">総走行距離：</span><span class="total-value">${totalDistance.toFixed(1)} km</span></div>
   </div>
-  <div class="footer">印刷日: ${new Date().toLocaleDateString("ja-JP")}</div>
-</div>
+  <div class="seal-area">
+    <div class="seal-box"><span>確認印</span></div>
+    <div class="seal-box"><span>承認印</span></div>
+  </div>
+  <div class="footer">
+    <span>印刷日：${new Date().toLocaleDateString("ja-JP")}</span>
+    <span>※ 帰着未入力の欄は斜体で表示しています</span>
+  </div>
 <script>
   window.onload = function() {
     setTimeout(function() {
