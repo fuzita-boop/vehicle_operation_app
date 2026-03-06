@@ -17,6 +17,19 @@ export const appRouter = router({
     }),
   }),
 
+  push: router({
+    subscribe: protectedProcedure.input((val: any) => val as { endpoint: string; p256dh: string; auth: string }).mutation(async ({ ctx, input }) => {
+      const { savePushSubscription } = await import("./db");
+      await savePushSubscription(ctx.user.id, input.endpoint, input.p256dh, input.auth);
+      return { success: true };
+    }),
+    unsubscribe: protectedProcedure.input((val: any) => val as { endpoint: string }).mutation(async ({ ctx, input }) => {
+      const { deletePushSubscription } = await import("./db");
+      await deletePushSubscription(ctx.user.id, input.endpoint);
+      return { success: true };
+    }),
+  }),
+
   vehicle: router({
     getDriver: protectedProcedure.query(async ({ ctx }) => {
       const { getOrCreateDriver } = await import("./db");

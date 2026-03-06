@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import VehicleLayout from "@/components/VehicleLayout";
 import { trpc } from "@/lib/trpc";
-import { Calendar, Plus, FileText, AlertTriangle } from "lucide-react";
+import { Calendar, Plus, FileText, AlertTriangle, Bell, BellOff } from "lucide-react";
 import { Link } from "wouter";
+import { usePushNotification } from "@/hooks/usePushNotification";
 
 export default function Home() {
   const [driverName, setDriverName] = useState("");
@@ -15,6 +16,9 @@ export default function Home() {
   const { data: vehicle } = trpc.vehicle.getVehicle.useQuery();
   const { data: currentCycle } = trpc.vehicle.getCurrentCycle.useQuery();
   const { data: incompleteData } = trpc.vehicle.getIncompleteCount.useQuery();
+
+  // Push notification
+  const { isSupported, permission, isSubscribed, isLoading: pushLoading, subscribe, unsubscribe } = usePushNotification();
 
   // Mutations
   const setDriverMutation = trpc.vehicle.setDriver.useMutation();
@@ -62,6 +66,59 @@ export default function Home() {
       title="車両運行日報"
       subtitle={`現在のサイクル: ${cycleStartDate} 〜 ${cycleEndDate}`}
     >
+      {/* プッシュ通知の許可バナー（未許可かつサポートされている場合） */}
+      {isSupported && permission === "default" && !isSubscribed && (
+        <div
+          className="mb-4 flex items-center justify-between gap-3 rounded-xl px-5 py-3"
+          style={{ backgroundColor: '#eff6ff', border: '1px solid #93c5fd' }}
+        >
+          <div className="flex items-center gap-2">
+            <Bell className="h-5 w-5 shrink-0" style={{ color: '#2563eb' }} />
+            <p className="text-sm" style={{ color: '#1e40af' }}>
+              毎日18時に帰着未入力を通知します
+            </p>
+          </div>
+          <button
+            onClick={subscribe}
+            disabled={pushLoading}
+            className="shrink-0 px-3 py-1.5 text-sm font-semibold rounded-lg transition-all"
+            style={{ backgroundColor: '#2563eb', color: '#fff' }}
+          >
+            {pushLoading ? "設定中..." : "通知を許可"}
+          </button>
+        </div>
+      )}
+
+      {/* 通知ON/OFFトグル（許可済みの場合） */}
+      {isSupported && permission === "granted" && (
+        <div
+          className="mb-4 flex items-center justify-between gap-3 rounded-xl px-5 py-3"
+          style={{ backgroundColor: isSubscribed ? '#f0fdf4' : '#fafafa', border: `1px solid ${isSubscribed ? '#86efac' : '#e5e7eb'}` }}
+        >
+          <div className="flex items-center gap-2">
+            {isSubscribed ? (
+              <Bell className="h-5 w-5 shrink-0" style={{ color: '#16a34a' }} />
+            ) : (
+              <BellOff className="h-5 w-5 shrink-0" style={{ color: '#6b7280' }} />
+            )}
+            <p className="text-sm" style={{ color: isSubscribed ? '#15803d' : '#6b7280' }}>
+              {isSubscribed ? "18時の帰着リマインダー通知: ON" : "18時の帰着リマインダー通知: OFF"}
+            </p>
+          </div>
+          <button
+            onClick={isSubscribed ? unsubscribe : subscribe}
+            disabled={pushLoading}
+            className="shrink-0 px-3 py-1.5 text-sm font-semibold rounded-lg transition-all"
+            style={isSubscribed
+              ? { backgroundColor: '#fee2e2', color: '#b91c1c' }
+              : { backgroundColor: '#2563eb', color: '#fff' }
+            }
+          >
+            {pushLoading ? "処理中..." : isSubscribed ? "通知をOFF" : "通知をON"}
+          </button>
+        </div>
+      )}
+
       {/* 帰着未入力の警告バナー */}
       {hasIncomplete && (
         <div

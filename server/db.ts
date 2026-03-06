@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, drivers, vehicles, monthlyCycles, dailyRecords } from "../drizzle/schema";
+import { InsertUser, users, drivers, vehicles, monthlyCycles, dailyRecords, pushSubscriptions } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -277,4 +277,100 @@ export async function deleteDailyRecord(recordId: number) {
   if (!db) throw new Error("Database not available");
 
   return await db.delete(dailyRecords).where(eq(dailyRecords.id, recordId));
+}
+
+/**
+ * Push購読情報を保存（同一ユーザー・同一エンドポイントは上書き）
+ */
+export async function savePushSubscription(userId: number, endpoint: string, p256dh: string, auth: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const existing = await db
+    .select()
+    .from(pushSubscriptions)
+    .where(and(eq(pushSubscriptions.userId, userId), eq(pushSubscriptions.endpoint, endpoint)))
+    .limit(1);
+
+  if (existing.length > 0) {
+    await db.update(pushSubscriptions)
+      .set({ p256dh, auth })
+      .where(eq(pushSubscriptions.id, existing[0].id));
+    return existing[0].id;
+  }
+
+  const result = await db.insert(pushSubscriptions).values({ userId, endpoint, p256dh, auth });
+  return result[0].insertId;
+}
+
+/**
+ * Push購読情報を削除
+ */
+export async function deletePushSubscription(userId: number, endpoint: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.delete(pushSubscriptions)
+    .where(and(eq(pushSubscriptions.userId, userId), eq(pushSubscriptions.endpoint, endpoint)));
+}
+
+/**
+ * 全ユーザーのPush購読情報を取得（スケジューラー用）
+ */
+export async function getAllPushSubscriptions() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.select().from(pushSubscriptions);
+}
+
+/**
+ * 特定ユーザーのPush購読情報を取得
+ */
+export async function getPushSubscriptionsByUser(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+}
+
+/**
+ * 全ユーザーの帰着未入力件数を取得（スケジューラー用）
+ * userId => count のマップを返す
+ */
+export async function getIncompleteArrivalsByUser(): Promise<Map<number, number>> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const today = new Date();
+  const day = today.getDate();
+  let cycleStart: Date, cycleEnd: Date;
+  if (day >= 16) {
+    cycleStart = new Date(today.getFullYear(), today.getMonth(), 16);
+    cycleEnd = new Date(today.getFullYear(), today.getMonth() + 1, 15);
+  } else {
+    cycleStart = new Date(today.getFullYear(), today.getMonth() - 1, 16);
+    cycleEnd = new Date(today.getFullYear(), today.getMonth(), 15);
+  }
+
+  // 現在サイクルの全サイクルを取得
+  const cycles = await db
+    .select()
+    .from(monthlyCycles)
+    .where(
+      and(
+        eq(monthlyCycles.cycleStartDate, cycleStart),
+        eq(monthlyCycles.cycleEndDate, cycleEnd)
+      )
+    );
+
+  const result = new Map<number, number>();
+  for (const cycle of cycles) {
+    const records = await db.select().from(dailyRecords).where(eq(dailyRecords.cycleId, cycle.id));
+    const incompleteCount = records.filter((r) => r.arrivalTime == null).length;
+    if (incompleteCount > 0) {
+      result.set(cycle.userId, (result.get(cycle.userId) ?? 0) + incompleteCount);
+    }
+  }
+  return result;
 }

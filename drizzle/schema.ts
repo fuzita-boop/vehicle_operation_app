@@ -84,3 +84,20 @@ export const dailyRecords = mysqlTable("dailyRecords", {
 
 export type DailyRecord = typeof dailyRecords.$inferSelect;
 export type InsertDailyRecord = typeof dailyRecords.$inferInsert;
+
+/**
+ * Web Push購読テーブル
+ * ブラウザプッシュ通知の購読情報を保持
+ */
+export const pushSubscriptions = mysqlTable("pushSubscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;
