@@ -280,9 +280,13 @@ export default function Home() {
           }
         >
           {hasIncomplete ? (
-            <AlertTriangle className="h-8 w-8 mx-auto mb-2" style={{ color: '#ea580c' }} />
+            <div className="mx-auto mb-3 w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: '#fed7aa' }}>
+              <AlertTriangle className="h-9 w-9" style={{ color: '#ea580c' }} />
+            </div>
           ) : (
-            <Plus className="h-8 w-8 text-accent mx-auto mb-2" />
+            <div className="mx-auto mb-3 w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1d4ed8' }}>
+              <Plus className="h-9 w-9" style={{ color: '#ffffff' }} />
+            </div>
           )}
           <h3
             className="text-lg font-semibold"
@@ -310,7 +314,9 @@ export default function Home() {
         </Link>
 
         <Link href="/monthly-report" className="card-elegant text-center py-8 hover:shadow-lg transition-all cursor-pointer block">
-          <FileText className="h-8 w-8 text-accent mx-auto mb-2" />
+          <div className="mx-auto mb-3 w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: '#16a34a' }}>
+            <FileText className="h-9 w-9" style={{ color: '#ffffff' }} />
+          </div>
           <h3 className="text-lg font-semibold text-foreground">月次レポート</h3>
           <p className="text-sm text-muted-foreground mt-1">
             1ヶ月分の記録を表示・印刷
