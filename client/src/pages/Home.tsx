@@ -119,22 +119,24 @@ export default function Home() {
         </div>
       )}
 
-      {/* 帰着未入力の警告バナー */}
+      {/* 帰着未入力の警告バナー（クリックで帰着フォームを自動起動） */}
       {hasIncomplete && (
-        <div
-          className="mb-6 flex items-center gap-3 rounded-xl px-5 py-4 shadow-sm"
-          style={{ backgroundColor: '#fff7ed', border: '2px solid #f97316' }}
+        <Link
+          href="/daily-record?openArrival=1"
+          className="mb-6 flex items-center gap-3 rounded-xl px-5 py-4 shadow-sm cursor-pointer hover:shadow-md transition-all block"
+          style={{ backgroundColor: '#fff7ed', border: '2px solid #f97316', textDecoration: 'none' }}
         >
           <AlertTriangle className="h-6 w-6 shrink-0" style={{ color: '#ea580c' }} />
-          <div>
+          <div className="flex-1">
             <p className="font-bold" style={{ color: '#9a3412' }}>
               帰着未入力の記録が {incompleteCount} 件あります
             </p>
             <p className="text-sm mt-0.5" style={{ color: '#c2410c' }}>
-              「本日の記録を入力」から帰着情報を追加してください
+              ここをタップして帰着情報を入力してください
             </p>
           </div>
-        </div>
+          <span className="text-2xl" style={{ color: '#ea580c' }}>›</span>
+        </Link>
       )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -261,7 +263,7 @@ export default function Home() {
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {/* 本日の記録を入力カード：帰着未入力があればオレンジ色 */}
         <Link
-          href="/daily-record"
+          href={hasIncomplete ? "/daily-record?openArrival=1" : "/daily-record"}
           className="text-center py-8 hover:shadow-lg transition-all cursor-pointer block rounded-xl"
           style={
             hasIncomplete

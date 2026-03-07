@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import VehicleLayout from "@/components/VehicleLayout";
 import { trpc } from "@/lib/trpc";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { ArrowLeft, Plus, Pencil, Trash2, Check, X, LogIn, LogOut } from "lucide-react";
 
 /** Convert any date value to YYYY-MM-DD string in local timezone */
@@ -63,6 +63,11 @@ export default function DailyRecord() {
   const [arrivalTargetRecord, setArrivalTargetRecord] = useState<DailyRecordData | null>(null);
   const [arrivalEditForm, setArrivalEditForm] = useState<ArrivalEditForm>({ arrivalTime: "", arrivalDistance: "" });
 
+  // ?openArrival=1 クエリパラメータで帰着フォームを自動起動
+  const searchString = useSearch();
+  const arrivalFormRef = useRef<HTMLDivElement>(null);
+  const autoOpenDone = useRef(false);
+
   const { data: currentCycle } = trpc.vehicle.getCurrentCycle.useQuery();
   const addRecordMutation = trpc.vehicle.addRecord.useMutation();
   const updateRecordMutation = trpc.vehicle.updateRecord.useMutation();
@@ -87,6 +92,28 @@ export default function DailyRecord() {
       })));
     }
   }, [initialRecords, currentCycle?.id]);
+
+  // ?openArrival=1 でページ遷移した場合、最新の帰着未入力記録の帰着フォームを自動起動
+  useEffect(() => {
+    const params = new URLSearchParams(searchString);
+    if (params.get('openArrival') !== '1') return;
+    if (autoOpenDone.current) return;
+    if (records.length === 0) return;
+
+    // 帰着未入力の記録を日付順で最新のものを取得
+    const incomplete = records.filter(r => r.arrivalTime == null || r.arrivalDistance == null);
+    if (incomplete.length === 0) return;
+
+    const target = incomplete[incomplete.length - 1]; // 最新の未入力記録
+    autoOpenDone.current = true;
+    setArrivalTargetRecord(target);
+    setArrivalEditForm({ arrivalTime: '', arrivalDistance: '' });
+
+    // 帰着フォームにスクロール
+    setTimeout(() => {
+      arrivalFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  }, [searchString, records]);
 
   const calculateDistance = (departure: number, arrival: number | null) => {
     if (arrival == null) return null;
@@ -359,6 +386,7 @@ export default function DailyRecord() {
           {arrivalTargetRecord && (
             <div
               id="arrival-form-section"
+              ref={arrivalFormRef}
               className="card-elegant border-2"
               style={{ borderColor: '#f59e0b' }}
             >
