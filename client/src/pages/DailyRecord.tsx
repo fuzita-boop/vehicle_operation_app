@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import VehicleLayout from "@/components/VehicleLayout";
 import { trpc } from "@/lib/trpc";
-import { Link, useSearch } from "wouter";
+import { Link, useSearch, useLocation } from "wouter";
 import { ArrowLeft, Plus, Pencil, Trash2, Check, X, LogIn, LogOut } from "lucide-react";
 
 /** Convert any date value to YYYY-MM-DD string in local timezone */
@@ -65,6 +65,7 @@ export default function DailyRecord() {
 
   // ?openArrival=1 クエリパラメータで帰着フォームを自動起動
   const searchString = useSearch();
+  const [, navigate] = useLocation();
   const arrivalFormRef = useRef<HTMLDivElement>(null);
   const autoOpenDone = useRef(false);
 
@@ -220,7 +221,13 @@ export default function DailyRecord() {
       setArrivalTargetRecord(null);
       setArrivalEditForm({ arrivalTime: "", arrivalDistance: "" });
       await refetch();
-      alert("帰着情報を保存しました");
+      // ?openArrival=1 経由の場合はホーム画面へ自動リダイレクト
+      const params = new URLSearchParams(searchString);
+      if (params.get('openArrival') === '1') {
+        navigate('/');
+      } else {
+        alert("帰着情報を保存しました");
+      }
     } catch (error) {
       console.error("Failed to save arrival:", error);
       alert("帰着情報の保存に失敗しました: " + (error instanceof Error ? error.message : String(error)));
