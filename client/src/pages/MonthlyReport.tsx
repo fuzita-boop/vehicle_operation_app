@@ -192,14 +192,14 @@ export default function MonthlyReport() {
 <style>
   @page {
     size: A4 portrait;
-    margin: 10mm 12mm 10mm 12mm;
+    margin: 8mm 10mm 8mm 10mm;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
     width: 100%;
     font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
-    font-size: 10pt;
-    line-height: 1.4;
+    font-size: 9pt;
+    line-height: 1.3;
     color: #000;
     background: #fff;
     -webkit-print-color-adjust: exact;
@@ -207,30 +207,30 @@ export default function MonthlyReport() {
   }
   .title {
     text-align: center;
-    font-size: 14pt;
+    font-size: 13pt;
     font-weight: 700;
-    padding-bottom: 4pt;
+    padding-bottom: 3pt;
     border-bottom: 2pt solid #000;
-    margin-bottom: 6pt;
+    margin-bottom: 4pt;
     letter-spacing: 0.1em;
   }
   .info-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 3pt 16pt;
-    margin-bottom: 3pt;
-    font-size: 9pt;
+    gap: 2pt 12pt;
+    margin-bottom: 2pt;
+    font-size: 8pt;
   }
-  .info-label { color: #555; font-size: 8pt; margin-bottom: 1pt; }
-  .info-value { font-weight: 700; font-size: 10pt; border-bottom: 1pt solid #ccc; padding-bottom: 1pt; }
+  .info-label { color: #555; font-size: 7pt; margin-bottom: 0; }
+  .info-value { font-weight: 700; font-size: 9pt; border-bottom: 1pt solid #ccc; padding-bottom: 1pt; }
   .period {
     text-align: center;
-    font-size: 9pt;
+    font-size: 8pt;
     color: #444;
-    margin: 4pt 0 7pt;
-    padding: 3pt;
+    margin: 3pt 0 5pt;
+    padding: 2pt;
     background: #f5f5f5;
-    border-radius: 3pt;
+    border-radius: 2pt;
   }
   table {
     width: 100%;
@@ -245,87 +245,69 @@ export default function MonthlyReport() {
     background-color: #d0d0d0;
     font-weight: 700;
     text-align: center;
-    font-size: 8pt;
-    border: 1pt solid #333;
-    padding: 3pt 2pt;
+    font-size: 7pt;
+    border: 0.5pt solid #333;
+    padding: 2pt 2pt;
   }
   td {
-    border: 1pt solid #555;
-    padding: 3pt 3pt;
+    border: 0.5pt solid #555;
+    padding: 2pt 3pt;
     overflow: hidden;
     white-space: nowrap;
-    font-size: 9pt;
+    font-size: 8pt;
   }
   tr:nth-child(even) td { background-color: #fafafa; }
   .incomplete { color: #b45309; font-style: italic; }
   .summary {
-    border-top: 2pt solid #000;
-    margin-top: 7pt;
-    padding-top: 4pt;
+    border-top: 1.5pt solid #000;
+    margin-top: 4pt;
+    padding-top: 3pt;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 10pt;
+    font-size: 9pt;
   }
-  .summary .total-label { color: #444; font-size: 9pt; }
-  .summary .total-value { font-size: 13pt; font-weight: 700; }
+  .summary .total-label { color: #444; font-size: 8pt; }
+  .summary .total-value { font-size: 11pt; font-weight: 700; }
   .gasoline-section {
     border: 1pt solid #888;
-    border-radius: 3pt;
-    margin-top: 8pt;
-    padding: 6pt 8pt;
+    border-radius: 2pt;
+    margin-top: 5pt;
+    padding: 4pt 6pt;
     background: #fafafa;
   }
   .gasoline-note {
-    font-size: 8pt;
+    font-size: 7pt;
     color: #555;
-    margin-bottom: 4pt;
+    margin-bottom: 3pt;
   }
   .gasoline-formula {
-    font-size: 10pt;
+    font-size: 9pt;
     display: flex;
     align-items: center;
-    gap: 4pt;
+    gap: 3pt;
     flex-wrap: wrap;
   }
   .gasoline-blank {
     display: inline-block;
     border-bottom: 1pt solid #000;
     min-width: 50pt;
-    height: 12pt;
+    height: 11pt;
   }
   .gasoline-total-blank {
     display: inline-block;
     border-bottom: 1pt solid #000;
     min-width: 70pt;
-    height: 12pt;
+    height: 11pt;
   }
   .footer {
     border-top: 1pt solid #ccc;
-    margin-top: 6pt;
-    padding-top: 3pt;
+    margin-top: 4pt;
+    padding-top: 2pt;
     display: flex;
     justify-content: space-between;
-    font-size: 7pt;
+    font-size: 6pt;
     color: #888;
-  }
-  .seal-area {
-    display: flex;
-    gap: 8pt;
-    margin-top: 7pt;
-    justify-content: flex-end;
-  }
-  .seal-box {
-    border: 1pt solid #555;
-    width: 36pt;
-    height: 36pt;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 7pt;
-    color: #888;
-    flex-direction: column;
-    gap: 2pt;
   }
 </style>
 </head>
@@ -358,10 +340,6 @@ export default function MonthlyReport() {
   <div class="summary">
     <div><span class="total-label">記録日数：</span><span class="total-value">${records.length} 日</span></div>
     <div><span class="total-label">総走行距離：</span><span class="total-value">${totalDistance.toFixed(1)} km</span></div>
-  </div>
-  <div class="seal-area">
-    <div class="seal-box"><span>確認印</span></div>
-    <div class="seal-box"><span>承認印</span></div>
   </div>
   <div class="gasoline-section">
     <div class="gasoline-note">※給与計算担当者記載</div>
