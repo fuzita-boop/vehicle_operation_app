@@ -28,6 +28,46 @@ export const appRouter = router({
       await deletePushSubscription(ctx.user.id, input.endpoint);
       return { success: true };
     }),
+    sendTest: protectedProcedure.mutation(async ({ ctx }) => {
+      const { getPushSubscriptionsByUser, deletePushSubscription } = await import("./db");
+      const webpush = await import("web-push");
+      const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || "";
+      const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
+      if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+        throw new Error("VAPID keys not configured");
+      }
+      webpush.default.setVapidDetails("mailto:noreply@vehicle-app.local", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+      const subscriptions = await getPushSubscriptionsByUser(ctx.user.id);
+      if (subscriptions.length === 0) {
+        return { success: false, message: "購読情報がありません。通知を許可してください。" };
+      }
+      let sent = 0;
+      let failed = 0;
+      for (const sub of subscriptions) {
+        const payload = JSON.stringify({
+          title: "車両運行日報 - テスト通知",
+          body: "通知のテストです。正常に届いています！",
+          url: "/daily-record",
+        });
+        try {
+          await webpush.default.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            payload
+          );
+          sent++;
+        } catch (err: any) {
+          failed++;
+          if (err.statusCode === 410 || err.statusCode === 404) {
+            await deletePushSubscription(ctx.user.id, sub.endpoint);
+          }
+        }
+      }
+      if (sent > 0) {
+        return { success: true, message: "テスト通知を送信しました。" };
+      } else {
+        return { success: false, message: "購読情報が無効です。一度オフにしてから再度通知を許可してください。" };
+      }
+    }),
   }),
 
   vehicle: router({

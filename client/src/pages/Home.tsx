@@ -19,10 +19,25 @@ export default function Home() {
 
   // Push notification
   const { isSupported, permission, isSubscribed, isLoading: pushLoading, subscribe, unsubscribe } = usePushNotification();
+  const [testNotifResult, setTestNotifResult] = useState<string | null>(null);
 
   // Mutations
   const setDriverMutation = trpc.vehicle.setDriver.useMutation();
   const setVehicleMutation = trpc.vehicle.setVehicle.useMutation();
+  const sendTestMutation = trpc.push.sendTest.useMutation();
+
+  const handleSendTest = async () => {
+    setTestNotifResult(null);
+    try {
+      const result = await sendTestMutation.mutateAsync();
+      setTestNotifResult(result.message);
+      // 3秒後にメッセージを消す
+      setTimeout(() => setTestNotifResult(null), 4000);
+    } catch (err) {
+      setTestNotifResult("送信に失敗しました。再度お試しください。");
+      setTimeout(() => setTestNotifResult(null), 4000);
+    }
+  };
 
   // Initialize form with existing data
   useEffect(() => {
@@ -92,30 +107,49 @@ export default function Home() {
       {/* 通知ON/OFFトグル（許可済みの場合） */}
       {isSupported && permission === "granted" && (
         <div
-          className="mb-4 flex items-center justify-between gap-3 rounded-xl px-5 py-3"
+          className="mb-4 rounded-xl px-5 py-3"
           style={{ backgroundColor: isSubscribed ? '#f0fdf4' : '#fafafa', border: `1px solid ${isSubscribed ? '#86efac' : '#e5e7eb'}` }}
         >
-          <div className="flex items-center gap-2">
-            {isSubscribed ? (
-              <Bell className="h-5 w-5 shrink-0" style={{ color: '#16a34a' }} />
-            ) : (
-              <BellOff className="h-5 w-5 shrink-0" style={{ color: '#6b7280' }} />
-            )}
-            <p className="text-sm" style={{ color: isSubscribed ? '#15803d' : '#6b7280' }}>
-              {isSubscribed ? "18時の帰着リマインダー通知: ON" : "18時の帰着リマインダー通知: OFF"}
-            </p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              {isSubscribed ? (
+                <Bell className="h-5 w-5 shrink-0" style={{ color: '#16a34a' }} />
+              ) : (
+                <BellOff className="h-5 w-5 shrink-0" style={{ color: '#6b7280' }} />
+              )}
+              <p className="text-sm" style={{ color: isSubscribed ? '#15803d' : '#6b7280' }}>
+                {isSubscribed ? "18時の帰着リマインダー通知: ON" : "18時の帰着リマインダー通知: OFF"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {isSubscribed && (
+                <button
+                  onClick={handleSendTest}
+                  disabled={sendTestMutation.isPending}
+                  className="px-3 py-1.5 text-sm font-semibold rounded-lg transition-all"
+                  style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #93c5fd' }}
+                >
+                  {sendTestMutation.isPending ? "送信中..." : "テスト送信"}
+                </button>
+              )}
+              <button
+                onClick={isSubscribed ? unsubscribe : subscribe}
+                disabled={pushLoading}
+                className="px-3 py-1.5 text-sm font-semibold rounded-lg transition-all"
+                style={isSubscribed
+                  ? { backgroundColor: '#fee2e2', color: '#b91c1c' }
+                  : { backgroundColor: '#2563eb', color: '#fff' }
+                }
+              >
+                {pushLoading ? "処理中..." : isSubscribed ? "通知をOFF" : "通知をON"}
+              </button>
+            </div>
           </div>
-          <button
-            onClick={isSubscribed ? unsubscribe : subscribe}
-            disabled={pushLoading}
-            className="shrink-0 px-3 py-1.5 text-sm font-semibold rounded-lg transition-all"
-            style={isSubscribed
-              ? { backgroundColor: '#fee2e2', color: '#b91c1c' }
-              : { backgroundColor: '#2563eb', color: '#fff' }
-            }
-          >
-            {pushLoading ? "処理中..." : isSubscribed ? "通知をOFF" : "通知をON"}
-          </button>
+          {testNotifResult && (
+            <p className="mt-2 text-sm font-medium" style={{ color: testNotifResult.includes("失敗") || testNotifResult.includes("無効") ? '#b91c1c' : '#15803d' }}>
+              {testNotifResult}
+            </p>
+          )}
         </div>
       )}
 
