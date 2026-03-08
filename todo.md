@@ -169,3 +169,11 @@
 - [x] 送信結果（成功/失敗）をインラインで表示（4秒後自動消去）
 - [x] 購読情報無効時はエラーメッセージで再購読を促す
 
+
+## Phase 29: プッシュ通知機能を完全削除
+- [x] Home.tsxから通知許可バナー・通知ON/OFFトグル・テスト送信ボタンを削除
+- [x] usePushNotification.tsフックを削除
+- [x] server/pushScheduler.tsを削除
+- [x] server/_core/index.tsからpushScheduler起動コードを削除
+- [x] server/routers.tsからpushルーターを削除
+- [x] client/public/sw.jsを削除
