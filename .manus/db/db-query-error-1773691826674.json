@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, user_id, cycle_start_date, cycle_end_date FROM monthlyCycles ORDER BY cycle_start_date DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user PaJKUxkzic33EKU.9fabc4a7d82e --database megdFLwq3PKkC44ndRH8R7 --execute SELECT id, user_id, cycle_start_date, cycle_end_date FROM monthlyCycles ORDER BY cycle_start_date DESC LIMIT 10;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'user_id' in 'field list'"
+  ]
+}

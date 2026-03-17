@@ -113,7 +113,17 @@ export const appRouter = router({
     }),
     getCycles: protectedProcedure.query(async ({ ctx }) => {
       const { getAllCycles } = await import("./db");
-      return await getAllCycles(ctx.user.id);
+      const cycles = await getAllCycles(ctx.user.id);
+      // Return dates as YYYY-MM-DD strings to avoid timezone shift on client
+      return cycles.map((c: any) => ({
+        ...c,
+        cycleStartDate: c.cycleStartDate instanceof Date
+          ? `${c.cycleStartDate.getUTCFullYear()}-${String(c.cycleStartDate.getUTCMonth()+1).padStart(2,'0')}-${String(c.cycleStartDate.getUTCDate()).padStart(2,'0')}`
+          : String(c.cycleStartDate).split('T')[0],
+        cycleEndDate: c.cycleEndDate instanceof Date
+          ? `${c.cycleEndDate.getUTCFullYear()}-${String(c.cycleEndDate.getUTCMonth()+1).padStart(2,'0')}-${String(c.cycleEndDate.getUTCDate()).padStart(2,'0')}`
+          : String(c.cycleEndDate).split('T')[0],
+      }));
     }),
     getIncompleteCount: protectedProcedure.query(async ({ ctx }) => {
       const { getOrCreateDriver, getOrCreateVehicle, getOrCreateMonthlyCycle, getDailyRecordsByCycle } = await import("./db");

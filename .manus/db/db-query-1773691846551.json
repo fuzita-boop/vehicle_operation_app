@@ -1,0 +1,55 @@
+{
+  "query": "SELECT id, cycleStartDate, cycleEndDate FROM monthlyCycles ORDER BY cycleStartDate DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user PaJKUxkzic33EKU.9fabc4a7d82e --database megdFLwq3PKkC44ndRH8R7 --execute SELECT id, cycleStartDate, cycleEndDate FROM monthlyCycles ORDER BY cycleStartDate DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "120002",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    },
+    {
+      "id": "120001",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    },
+    {
+      "id": "90001",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    },
+    {
+      "id": "30002",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15"
+    },
+    {
+      "id": "30001",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15"
+    },
+    {
+      "id": "2",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15"
+    },
+    {
+      "id": "1",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15"
+    },
+    {
+      "id": "60001",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15"
+    },
+    {
+      "id": "60002",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tcycleStartDate\tcycleEndDate\n120002\t2026-03-16\t2026-04-15\n120001\t2026-03-16\t2026-04-15\n90001\t2026-03-16\t2026-04-15\n30002\t2026-02-16\t2026-03-15\n30001\t2026-02-16\t2026-03-15\n2\t2026-02-16\t2026-03-15\n1\t2026-02-16\t2026-03-15\n60001\t2026-02-16\t2026-03-15\n60002\t2026-02-16\t2026-03-15\n",
+  "stderr": "",
+  "execution_time_ms": 1596
+}

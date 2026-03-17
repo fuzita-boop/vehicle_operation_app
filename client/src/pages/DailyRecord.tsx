@@ -1,26 +1,38 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import VehicleLayout from "@/components/VehicleLayout";
 import { trpc } from "@/lib/trpc";
 import { Link, useSearch, useLocation } from "wouter";
-import { ArrowLeft, Plus, Pencil, Trash2, Check, X, LogIn, LogOut } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Check, X, LogIn, LogOut, ChevronLeft, ChevronRight, Home } from "lucide-react";
 
-/** Convert any date value to YYYY-MM-DD string in local timezone */
+/** YYYY-MM-DD 文字列を "YYYY/MM/DD" 形式の日本語表記に変換（UTC基準）*/
+function formatDateJP(val: string | Date | unknown): string {
+  if (!val) return "";
+  let str: string;
+  if (val instanceof Date) {
+    str = val.toISOString().split("T")[0];
+  } else {
+    str = String(val);
+    if (str.includes("T")) str = str.split("T")[0];
+  }
+  const parts = str.split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}/${parts[1]}/${parts[2]}`;
+  }
+  return str;
+}
+
+/** Convert any date value to YYYY-MM-DD string (UTC-based) */
 function toDateString(val: string | Date | unknown): string {
   if (!val) return new Date().toISOString().split('T')[0];
   if (val instanceof Date) {
-    const y = val.getFullYear();
-    const m = String(val.getMonth() + 1).padStart(2, '0');
-    const d = String(val.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return val.toISOString().split('T')[0];
   }
   const str = String(val);
+  if (str.includes('T')) return str.split('T')[0];
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
   const parsed = new Date(str);
   if (!isNaN(parsed.getTime())) {
-    const y = parsed.getFullYear();
-    const m = String(parsed.getMonth() + 1).padStart(2, '0');
-    const d = String(parsed.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return parsed.toISOString().split('T')[0];
   }
   return str;
 }
@@ -48,6 +60,13 @@ interface ArrivalEditForm {
   arrivalDistance: string;
 }
 
+interface CycleOption {
+  id: number;
+  cycleStartDate: string;
+  cycleEndDate: string;
+  label: string;
+}
+
 export default function DailyRecord() {
   const [departureForm, setDepartureForm] = useState<DepartureForm>({
     recordDate: new Date().toISOString().split("T")[0],
@@ -58,6 +77,7 @@ export default function DailyRecord() {
   const [records, setRecords] = useState<DailyRecordData[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<DailyRecordData | null>(null);
+  const [selectedCycleId, setSelectedCycleId] = useState<number | null>(null);
 
   // 帰着フォームの状態（出発フォームの下に表示）
   const [arrivalTargetRecord, setArrivalTargetRecord] = useState<DailyRecordData | null>(null);
@@ -70,16 +90,79 @@ export default function DailyRecord() {
   const autoOpenDone = useRef(false);
 
   const { data: currentCycle } = trpc.vehicle.getCurrentCycle.useQuery();
+  const { data: allCycles } = trpc.vehicle.getCycles.useQuery();
   const addRecordMutation = trpc.vehicle.addRecord.useMutation();
   const updateRecordMutation = trpc.vehicle.updateRecord.useMutation();
   const deleteRecordMutation = trpc.vehicle.deleteRecord.useMutation();
+
+  // 表示対象のサイクルID（選択中 or 現在のサイクル）
+  const activeCycleId = useMemo(() => {
+    if (selectedCycleId !== null) return selectedCycleId;
+    if (currentCycle?.id) return currentCycle.id;
+    return null;
+  }, [selectedCycleId, currentCycle?.id]);
+
   const { data: initialRecords, refetch } = trpc.vehicle.getRecords.useQuery(
-    currentCycle?.id ? { cycleId: currentCycle.id } : { cycleId: 0 },
-    { enabled: !!currentCycle?.id }
+    activeCycleId ? { cycleId: activeCycleId } : { cycleId: 0 },
+    { enabled: !!activeCycleId }
   );
 
+  // サイクル選択肢（新しい順）
+  const cycleOptions = useMemo<CycleOption[]>(() => {
+    if (!allCycles) return [];
+    return [...allCycles]
+      .sort((a, b) => {
+        const aStr = toDateString(a.cycleStartDate);
+        const bStr = toDateString(b.cycleStartDate);
+        return bStr.localeCompare(aStr);
+      })
+      .map((c) => {
+        const startStr = toDateString(c.cycleStartDate);
+        const endStr = toDateString(c.cycleEndDate);
+        const start = formatDateJP(startStr);
+        const end = formatDateJP(endStr);
+        const isCurrentCycle = c.id === currentCycle?.id;
+        return {
+          id: c.id,
+          cycleStartDate: startStr,
+          cycleEndDate: endStr,
+          label: isCurrentCycle ? `${start} 〜 ${end}（今月）` : `${start} 〜 ${end}`,
+        };
+      });
+  }, [allCycles, currentCycle?.id]);
+
+  // 現在選択中のインデックス
+  const currentIndex = useMemo(() => {
+    if (!activeCycleId) return 0;
+    return cycleOptions.findIndex((c) => c.id === activeCycleId);
+  }, [cycleOptions, activeCycleId]);
+
+  // 現在選択中のサイクル情報
+  const activeCycleOption = useMemo(() => {
+    if (!activeCycleId) return null;
+    return cycleOptions.find((c) => c.id === activeCycleId) ?? null;
+  }, [cycleOptions, activeCycleId]);
+
+  const cycleInfo = useMemo(() => {
+    if (!activeCycleOption) {
+      if (currentCycle) {
+        return {
+          start: formatDateJP(currentCycle.cycleStartDate),
+          end: formatDateJP(currentCycle.cycleEndDate),
+        };
+      }
+      return { start: "", end: "" };
+    }
+    return {
+      start: formatDateJP(activeCycleOption.cycleStartDate),
+      end: formatDateJP(activeCycleOption.cycleEndDate),
+    };
+  }, [activeCycleOption, currentCycle]);
+
+  const isCurrentCycleSelected = activeCycleId === currentCycle?.id;
+
   useEffect(() => {
-    if (initialRecords && currentCycle?.id) {
+    if (initialRecords && activeCycleId) {
       setRecords(initialRecords.map(r => ({
         ...r,
         recordDate: toDateString(r.recordDate),
@@ -92,7 +175,7 @@ export default function DailyRecord() {
         arrivalTime: r.arrivalTime ?? null,
       })));
     }
-  }, [initialRecords, currentCycle?.id]);
+  }, [initialRecords, activeCycleId]);
 
   // ?openArrival=1 でページ遷移した場合、最新の帰着未入力記録の帰着フォームを自動起動
   useEffect(() => {
@@ -144,14 +227,14 @@ export default function DailyRecord() {
       alert("出発時走行距離を正しく入力してください");
       return;
     }
-    if (!currentCycle?.id) {
+    if (!activeCycleId) {
       alert("サイクル情報が見つかりません");
       return;
     }
 
     try {
       await addRecordMutation.mutateAsync({
-        cycleId: currentCycle.id,
+        cycleId: activeCycleId,
         recordDate: departureForm.recordDate,
         departureTime: departureForm.departureTime,
         arrivalTime: null,
@@ -314,6 +397,18 @@ export default function DailyRecord() {
     }
   };
 
+  // 前後のサイクルに移動
+  const goToPrev = () => {
+    if (currentIndex < cycleOptions.length - 1) {
+      setSelectedCycleId(cycleOptions[currentIndex + 1].id);
+    }
+  };
+  const goToNext = () => {
+    if (currentIndex > 0) {
+      setSelectedCycleId(cycleOptions[currentIndex - 1].id);
+    }
+  };
+
   const incompleteCount = records.filter(r => r.arrivalTime == null).length;
 
   // 帰着対象記録の出発距離
@@ -325,69 +420,145 @@ export default function DailyRecord() {
 
   return (
     <VehicleLayout title="日次記録入力" subtitle="毎日の運行記録を入力してください">
+
+      {/* ホームへ戻るボタン（最上部） */}
+      <div className="mb-4">
+        <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg transition-colors hover:bg-gray-100" style={{ color: '#374151' }}>
+          <Home className="h-4 w-4" />
+          ホームへ戻る
+        </Link>
+      </div>
+
+      {/* サイクル選択UI */}
+      <div className="card-elegant mb-6 p-4">
+        <p className="text-xs text-muted-foreground mb-3 font-medium">対象サイクルを選択</p>
+
+        {/* セレクトボックス */}
+        <select
+          value={activeCycleId ?? ""}
+          onChange={(e) => setSelectedCycleId(Number(e.target.value))}
+          className="input-elegant text-sm mb-3"
+        >
+          {cycleOptions.length === 0 && (
+            <option value="">読み込み中...</option>
+          )}
+          {cycleOptions.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+
+        {/* 前後ナビゲーション */}
+        <div className="flex items-center justify-between gap-2">
+          <button
+            onClick={goToPrev}
+            disabled={currentIndex >= cycleOptions.length - 1}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-40"
+            style={{ backgroundColor: '#f3f4f6', color: '#374151' }}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            前のサイクル
+          </button>
+
+          <span className="text-sm font-medium text-center flex-1" style={{ color: '#1d4ed8' }}>
+            {cycleInfo.start && cycleInfo.end
+              ? `${cycleInfo.start} 〜 ${cycleInfo.end}`
+              : "読み込み中..."}
+            {isCurrentCycleSelected && (
+              <span className="ml-2 text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: '#dbeafe', color: '#1d4ed8' }}>
+                今月
+              </span>
+            )}
+          </span>
+
+          <button
+            onClick={goToNext}
+            disabled={currentIndex <= 0}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-40"
+            style={{ backgroundColor: '#f3f4f6', color: '#374151' }}
+          >
+            次のサイクル
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-3">
         {/* 左カラム：出発フォーム＋帰着フォーム */}
         <div className="lg:col-span-2 space-y-4">
 
-          {/* 出発記録フォーム */}
-          <div className="card-elegant">
-            <div className="flex items-center gap-2 mb-4">
-              <LogIn className="h-5 w-5" style={{ color: '#1d4ed8' }} />
-              <h2 className="text-lg font-semibold text-foreground">出発記録</h2>
+          {/* 出発記録フォーム（今月のサイクルのみ表示） */}
+          {isCurrentCycleSelected ? (
+            <div className="card-elegant">
+              <div className="flex items-center gap-2 mb-4">
+                <LogIn className="h-5 w-5" style={{ color: '#1d4ed8' }} />
+                <h2 className="text-lg font-semibold text-foreground">出発記録</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                出発時間と走行距離を入力して保存してください。帰着後に終了情報を追加できます。
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">記録日</label>
+                  <input
+                    type="date"
+                    value={departureForm.recordDate}
+                    onChange={(e) => setDepartureForm({ ...departureForm, recordDate: e.target.value })}
+                    className="input-elegant"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    出発時間 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={departureForm.departureTime}
+                    onChange={(e) => setDepartureForm({ ...departureForm, departureTime: e.target.value })}
+                    className="input-elegant"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    出発時走行距離 (km) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={departureForm.departureDistance}
+                    placeholder="例: 12345.6"
+                    onChange={(e) => setDepartureForm({ ...departureForm, departureDistance: e.target.value })}
+                    className="input-elegant"
+                  />
+                </div>
+
+                <button
+                  onClick={handleDeparture}
+                  disabled={addRecordMutation.isPending}
+                  className="w-full mt-2 px-4 py-3 font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
+                  style={{ backgroundColor: '#1d4ed8' }}
+                >
+                  <LogIn className="h-5 w-5" />
+                  {addRecordMutation.isPending ? "保存中..." : "出発記録を保存"}
+                </button>
+              </div>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              出発時間と走行距離を入力して保存してください。帰着後に終了情報を追加できます。
-            </p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">記録日</label>
-                <input
-                  type="date"
-                  value={departureForm.recordDate}
-                  onChange={(e) => setDepartureForm({ ...departureForm, recordDate: e.target.value })}
-                  className="input-elegant"
-                />
+          ) : (
+            <div className="card-elegant p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <LogIn className="h-5 w-5" style={{ color: '#9ca3af' }} />
+                <h2 className="text-lg font-semibold" style={{ color: '#9ca3af' }}>出発記録</h2>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  出発時間 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="time"
-                  value={departureForm.departureTime}
-                  onChange={(e) => setDepartureForm({ ...departureForm, departureTime: e.target.value })}
-                  className="input-elegant"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  出発時走行距離 (km) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  value={departureForm.departureDistance}
-                  placeholder="例: 12345.6"
-                  onChange={(e) => setDepartureForm({ ...departureForm, departureDistance: e.target.value })}
-                  className="input-elegant"
-                />
-              </div>
-
-              <button
-                onClick={handleDeparture}
-                disabled={addRecordMutation.isPending}
-                className="w-full mt-2 px-4 py-3 font-bold text-lg rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-white"
-                style={{ backgroundColor: '#1d4ed8' }}
-              >
-                <LogIn className="h-5 w-5" />
-                {addRecordMutation.isPending ? "保存中..." : "出発記録を保存"}
-              </button>
+              <p className="text-sm" style={{ color: '#9ca3af' }}>
+                過去サイクルの閲覧・編集モードです。新規記録の追加は今月のサイクルを選択してください。
+              </p>
             </div>
-          </div>
+          )}
 
           {/* 帰着フォーム（出発フォームの下に表示） */}
           {arrivalTargetRecord && (
@@ -412,7 +583,7 @@ export default function DailyRecord() {
                   <div>
                     <p className="text-xs" style={{ color: '#78350f' }}>日付</p>
                     <p className="font-semibold" style={{ color: '#78350f' }}>
-                      {new Date(arrivalTargetRecord.recordDate).toLocaleDateString("ja-JP")}
+                      {formatDateJP(arrivalTargetRecord.recordDate)}
                     </p>
                   </div>
                   <div>
@@ -648,7 +819,7 @@ export default function DailyRecord() {
                     <div className="flex-1 grid grid-cols-3 sm:grid-cols-6 gap-2 text-sm">
                       <div>
                         <p className="text-xs" style={{ color: '#888' }}>日付</p>
-                        <p className="font-medium" style={{ color: '#111' }}>{new Date(record.recordDate).toLocaleDateString("ja-JP")}</p>
+                        <p className="font-medium" style={{ color: '#111' }}>{formatDateJP(record.recordDate)}</p>
                       </div>
                       <div>
                         <p className="text-xs" style={{ color: '#888' }}>出発</p>

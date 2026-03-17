@@ -177,3 +177,9 @@
 - [x] server/_core/index.tsからpushScheduler起動コードを削除
 - [x] server/routers.tsからpushルーターを削除
 - [x] client/public/sw.jsを削除
+
+## Phase 30: 緊急修正（月次レポート・日次記録）
+- [x] 月次レポートのサイクル表記がおかしい問題を修正（UTC基準のYYYY-MM-DD文字列で統一）
+- [x] 月次レポートのサイクル切り替えが遅い問題を修正（currentCycle/allCyclesを並列取得・useMemoで即時反映）
+- [x] 前サイクルの記録を編集できるよう日次記録ページにサイクル切り替えUIを追加
+- [x] 日次記録入力画面の最上部にホームへ戻るボタンを追加

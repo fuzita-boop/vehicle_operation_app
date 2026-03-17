@@ -18,9 +18,38 @@ interface ReportRecord {
 
 interface CycleOption {
   id: number;
-  cycleStartDate: string | Date;
-  cycleEndDate: string | Date;
+  cycleStartDate: string;
+  cycleEndDate: string;
   label: string;
+}
+
+/** YYYY-MM-DD 文字列を "YYYY/MM/DD" 形式の日本語表記に変換（UTC基準）*/
+function formatDateJP(val: string | Date | unknown): string {
+  if (!val) return "";
+  let str: string;
+  if (val instanceof Date) {
+    // Date オブジェクトの場合はUTC基準でYYYY-MM-DDを取得
+    str = val.toISOString().split("T")[0];
+  } else {
+    str = String(val);
+    // ISO文字列の場合はT以前のみ取得
+    if (str.includes("T")) str = str.split("T")[0];
+  }
+  // YYYY-MM-DD → YYYY/MM/DD
+  const parts = str.split("-");
+  if (parts.length === 3) {
+    return `${parts[0]}/${parts[1]}/${parts[2]}`;
+  }
+  return str;
+}
+
+/** recordDate を YYYY-MM-DD 文字列に正規化（UTC基準）*/
+function toDateStr(val: string | Date | unknown): string {
+  if (!val) return "";
+  if (val instanceof Date) return val.toISOString().split("T")[0];
+  const str = String(val);
+  if (str.includes("T")) return str.split("T")[0];
+  return str;
 }
 
 export default function MonthlyReport() {
@@ -29,13 +58,19 @@ export default function MonthlyReport() {
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [selectedCycleId, setSelectedCycleId] = useState<number | null>(null);
 
+  // 並列クエリ：currentCycle と allCycles を同時に取得
   const { data: currentCycle } = trpc.vehicle.getCurrentCycle.useQuery();
   const { data: allCycles } = trpc.vehicle.getCycles.useQuery();
   const { data: driver } = trpc.vehicle.getDriver.useQuery();
   const { data: vehicle } = trpc.vehicle.getVehicle.useQuery();
 
   // 表示対象のサイクルID（選択中 or 現在のサイクル）
-  const activeCycleId = selectedCycleId ?? currentCycle?.id ?? null;
+  // allCycles が取得できたら最新サイクルを初期選択
+  const activeCycleId = useMemo(() => {
+    if (selectedCycleId !== null) return selectedCycleId;
+    if (currentCycle?.id) return currentCycle.id;
+    return null;
+  }, [selectedCycleId, currentCycle?.id]);
 
   const { data: fetchedRecords } = trpc.vehicle.getRecords.useQuery(
     activeCycleId ? { cycleId: activeCycleId } : { cycleId: 0 },
@@ -46,33 +81,48 @@ export default function MonthlyReport() {
   const cycleOptions = useMemo<CycleOption[]>(() => {
     if (!allCycles) return [];
     return [...allCycles]
-      .sort((a, b) => new Date(b.cycleStartDate).getTime() - new Date(a.cycleStartDate).getTime())
+      .sort((a, b) => {
+        const aStr = typeof a.cycleStartDate === "string" ? a.cycleStartDate : toDateStr(a.cycleStartDate);
+        const bStr = typeof b.cycleStartDate === "string" ? b.cycleStartDate : toDateStr(b.cycleStartDate);
+        return bStr.localeCompare(aStr);
+      })
       .map((c) => {
-        const start = new Date(c.cycleStartDate).toLocaleDateString("ja-JP");
-        const end = new Date(c.cycleEndDate).toLocaleDateString("ja-JP");
+        const startStr = typeof c.cycleStartDate === "string" ? c.cycleStartDate.split("T")[0] : toDateStr(c.cycleStartDate);
+        const endStr = typeof c.cycleEndDate === "string" ? c.cycleEndDate.split("T")[0] : toDateStr(c.cycleEndDate);
+        const start = formatDateJP(startStr);
+        const end = formatDateJP(endStr);
         const isCurrentCycle = c.id === currentCycle?.id;
         return {
           id: c.id,
-          cycleStartDate: c.cycleStartDate,
-          cycleEndDate: c.cycleEndDate,
+          cycleStartDate: startStr,
+          cycleEndDate: endStr,
           label: isCurrentCycle ? `${start} 〜 ${end}（今月）` : `${start} 〜 ${end}`,
         };
       });
   }, [allCycles, currentCycle?.id]);
 
   // 現在選択中のサイクル情報
-  const activeCycle = useMemo(() => {
-    if (!allCycles || !activeCycleId) return currentCycle ?? null;
-    return allCycles.find((c) => c.id === activeCycleId) ?? currentCycle ?? null;
-  }, [allCycles, activeCycleId, currentCycle]);
+  const activeCycleOption = useMemo(() => {
+    if (!activeCycleId) return null;
+    return cycleOptions.find((c) => c.id === activeCycleId) ?? null;
+  }, [cycleOptions, activeCycleId]);
 
   const cycleInfo = useMemo(() => {
-    if (!activeCycle) return { start: "", end: "" };
+    if (!activeCycleOption) {
+      // allCycles 未取得時は currentCycle から直接取得
+      if (currentCycle) {
+        return {
+          start: formatDateJP(currentCycle.cycleStartDate),
+          end: formatDateJP(currentCycle.cycleEndDate),
+        };
+      }
+      return { start: "", end: "" };
+    }
     return {
-      start: new Date(activeCycle.cycleStartDate).toLocaleDateString("ja-JP"),
-      end: new Date(activeCycle.cycleEndDate).toLocaleDateString("ja-JP"),
+      start: formatDateJP(activeCycleOption.cycleStartDate),
+      end: formatDateJP(activeCycleOption.cycleEndDate),
     };
-  }, [activeCycle]);
+  }, [activeCycleOption, currentCycle]);
 
   // 現在選択中のインデックス（cycleOptions内）
   const currentIndex = useMemo(() => {
@@ -88,22 +138,12 @@ export default function MonthlyReport() {
     if (vehicle?.vehicleNumber) setVehicleNumber(vehicle.vehicleNumber);
   }, [vehicle]);
 
-  // 初期選択：現在のサイクルを選択
-  useEffect(() => {
-    if (currentCycle?.id && selectedCycleId === null) {
-      setSelectedCycleId(currentCycle.id);
-    }
-  }, [currentCycle?.id, selectedCycleId]);
-
   useEffect(() => {
     if (fetchedRecords && activeCycleId) {
       setRecords(
         fetchedRecords.map((r) => ({
           ...r,
-          recordDate:
-            r.recordDate instanceof Date
-              ? r.recordDate.toISOString().split("T")[0]
-              : r.recordDate,
+          recordDate: toDateStr(r.recordDate),
           departureDistance:
             typeof r.departureDistance === "string"
               ? parseFloat(r.departureDistance)
@@ -165,7 +205,7 @@ export default function MonthlyReport() {
             ? parseFloat(record.arrivalDistance)
             : (record.arrivalDistance as number);
       const distance = calculateDistance(depDist, arrDist);
-      const dateStr = new Date(record.recordDate).toLocaleDateString("ja-JP");
+      const dateStr = formatDateJP(record.recordDate);
 
       const incompleteClass = arrDist == null ? ' class="incomplete"' : '';
       return `<tr>
@@ -182,6 +222,10 @@ export default function MonthlyReport() {
       records.length === 0
         ? `<tr><td colspan="6" style="text-align:center;padding:20px;color:#888">記録がありません</td></tr>`
         : "";
+
+    // 印刷日もUTC基準のYYYY/MM/DDで表示
+    const today = new Date();
+    const printDate = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
 
     const printHtml = `<!DOCTYPE html>
 <html lang="ja">
@@ -354,7 +398,7 @@ export default function MonthlyReport() {
     </div>
   </div>
   <div class="footer">
-    <span>印刷日：${new Date().toLocaleDateString("ja-JP")}</span>
+    <span>印刷日：${printDate}</span>
     <span>※ 帰着未入力の欄は斜体で表示しています</span>
   </div>
 <script>
@@ -389,6 +433,9 @@ export default function MonthlyReport() {
           onChange={(e) => setSelectedCycleId(Number(e.target.value))}
           className="input-elegant text-sm mb-3"
         >
+          {cycleOptions.length === 0 && (
+            <option value="">読み込み中...</option>
+          )}
           {cycleOptions.map((c) => (
             <option key={c.id} value={c.id}>
               {c.label}
@@ -504,7 +551,7 @@ export default function MonthlyReport() {
                   return (
                     <tr key={idx}>
                       <td className="border px-2 py-1 text-xs" style={{ color: "#000", borderColor: "#333" }}>
-                        {new Date(record.recordDate).toLocaleDateString("ja-JP")}
+                        {formatDateJP(record.recordDate)}
                       </td>
                       <td className="border px-2 py-1 text-xs text-center" style={{ color: "#000", borderColor: "#333" }}>
                         {record.departureTime}
