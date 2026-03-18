@@ -1,0 +1,91 @@
+{
+  "query": "SELECT id, userId, driverId, vehicleId, cycleStartDate, cycleEndDate, createdAt FROM monthlyCycles ORDER BY userId, cycleStartDate, id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user PaJKUxkzic33EKU.9fabc4a7d82e --database megdFLwq3PKkC44ndRH8R7 --execute SELECT id, userId, driverId, vehicleId, cycleStartDate, cycleEndDate, createdAt FROM monthlyCycles ORDER BY userId, cycleStartDate, id;",
+  "rows": [
+    {
+      "id": "1",
+      "userId": "1",
+      "driverId": "1",
+      "vehicleId": "2",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15",
+      "createdAt": "2026-02-28 13:11:59"
+    },
+    {
+      "id": "2",
+      "userId": "1",
+      "driverId": "1",
+      "vehicleId": "1",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15",
+      "createdAt": "2026-02-28 13:12:07"
+    },
+    {
+      "id": "120001",
+      "userId": "1",
+      "driverId": "1",
+      "vehicleId": "1",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15",
+      "createdAt": "2026-03-16 10:16:38"
+    },
+    {
+      "id": "120002",
+      "userId": "1",
+      "driverId": "1",
+      "vehicleId": "1",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15",
+      "createdAt": "2026-03-16 10:16:38"
+    },
+    {
+      "id": "30001",
+      "userId": "690001",
+      "driverId": "30001",
+      "vehicleId": "30001",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15",
+      "createdAt": "2026-03-03 21:41:59"
+    },
+    {
+      "id": "30002",
+      "userId": "690001",
+      "driverId": "30001",
+      "vehicleId": "30002",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15",
+      "createdAt": "2026-03-03 21:41:59"
+    },
+    {
+      "id": "60001",
+      "userId": "1320001",
+      "driverId": "60001",
+      "vehicleId": "60001",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15",
+      "createdAt": "2026-03-10 12:06:24"
+    },
+    {
+      "id": "60002",
+      "userId": "1320001",
+      "driverId": "60001",
+      "vehicleId": "60002",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15",
+      "createdAt": "2026-03-10 12:06:24"
+    },
+    {
+      "id": "90001",
+      "userId": "1320001",
+      "driverId": "60001",
+      "vehicleId": "60001",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15",
+      "createdAt": "2026-03-16 07:46:00"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuserId\tdriverId\tvehicleId\tcycleStartDate\tcycleEndDate\tcreatedAt\n1\t1\t1\t2\t2026-02-16\t2026-03-15\t2026-02-28 13:11:59\n2\t1\t1\t1\t2026-02-16\t2026-03-15\t2026-02-28 13:12:07\n120001\t1\t1\t1\t2026-03-16\t2026-04-15\t2026-03-16 10:16:38\n120002\t1\t1\t1\t2026-03-16\t2026-04-15\t2026-03-16 10:16:38\n30001\t690001\t30001\t30001\t2026-02-16\t2026-03-15\t2026-03-03 21:41:59\n30002\t690001\t30001\t30002\t2026-02-16\t2026-03-15\t2026-03-03 21:41:59\n60001\t1320001\t60001\t60001\t2026-02-16\t2026-03-15\t2026-03-10 12:06:24\n60002\t1320001\t60001\t60002\t2026-02-16\t2026-03-15\t2026-03-10 12:06:24\n90001\t1320001\t60001\t60001\t2026-03-16\t2026-04-15\t2026-03-16 07:46:00\n",
+  "stderr": "",
+  "execution_time_ms": 1601
+}

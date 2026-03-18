@@ -1,0 +1,38 @@
+{
+  "query": "SELECT userId, cycleStartDate, MIN(id) as keep_id, GROUP_CONCAT(id ORDER BY id) as all_ids, COUNT(*) as cnt FROM monthlyCycles GROUP BY userId, cycleStartDate HAVING COUNT(*) > 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user PaJKUxkzic33EKU.9fabc4a7d82e --database megdFLwq3PKkC44ndRH8R7 --execute SELECT userId, cycleStartDate, MIN(id) as keep_id, GROUP_CONCAT(id ORDER BY id) as all_ids, COUNT(*) as cnt FROM monthlyCycles GROUP BY userId, cycleStartDate HAVING COUNT(*) > 1;",
+  "rows": [
+    {
+      "userId": "1",
+      "cycleStartDate": "2026-02-16",
+      "keep_id": "1",
+      "all_ids": "1,2",
+      "cnt": "2"
+    },
+    {
+      "userId": "690001",
+      "cycleStartDate": "2026-02-16",
+      "keep_id": "30001",
+      "all_ids": "30001,30002",
+      "cnt": "2"
+    },
+    {
+      "userId": "1320001",
+      "cycleStartDate": "2026-02-16",
+      "keep_id": "60001",
+      "all_ids": "60001,60002",
+      "cnt": "2"
+    },
+    {
+      "userId": "1",
+      "cycleStartDate": "2026-03-16",
+      "keep_id": "120001",
+      "all_ids": "120001,120002",
+      "cnt": "2"
+    }
+  ],
+  "messages": [],
+  "stdout": "userId\tcycleStartDate\tkeep_id\tall_ids\tcnt\n1\t2026-02-16\t1\t1,2\t2\n690001\t2026-02-16\t30001\t30001,30002\t2\n1320001\t2026-02-16\t60001\t60001,60002\t2\n1\t2026-03-16\t120001\t120001,120002\t2\n",
+  "stderr": "",
+  "execution_time_ms": 1539
+}

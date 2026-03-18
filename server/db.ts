@@ -138,22 +138,28 @@ export async function getOrCreateMonthlyCycle(userId: number, driverId: number, 
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  // userId + cycleStartDate の組み合わせで一意判定（driverId/vehicleIdの変更に対応）
   const existing = await db
     .select()
     .from(monthlyCycles)
     .where(
       and(
         eq(monthlyCycles.userId, userId),
-        eq(monthlyCycles.driverId, driverId),
-        eq(monthlyCycles.vehicleId, vehicleId),
-        eq(monthlyCycles.cycleStartDate, cycleStartDate),
-        eq(monthlyCycles.cycleEndDate, cycleEndDate)
+        eq(monthlyCycles.cycleStartDate, cycleStartDate)
       )
     )
     .limit(1);
 
   if (existing.length > 0) {
-    return existing[0];
+    // driverId/vehicleIdが変わっていれば更新する
+    const current = existing[0];
+    if (current.driverId !== driverId || current.vehicleId !== vehicleId) {
+      await db.update(monthlyCycles)
+        .set({ driverId, vehicleId, cycleEndDate })
+        .where(eq(monthlyCycles.id, current.id));
+      return { ...current, driverId, vehicleId, cycleEndDate };
+    }
+    return current;
   }
 
   const result = await db.insert(monthlyCycles).values({

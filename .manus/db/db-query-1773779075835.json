@@ -1,0 +1,9 @@
+{
+  "query": "\nUPDATE dailyRecords SET cycleId = 1 WHERE cycleId = 2;\nDELETE FROM monthlyCycles WHERE id IN (2, 30002, 60002, 120002);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user PaJKUxkzic33EKU.9fabc4a7d82e --database megdFLwq3PKkC44ndRH8R7 --execute \nUPDATE dailyRecords SET cycleId = 1 WHERE cycleId = 2;\nDELETE FROM monthlyCycles WHERE id IN (2, 30002, 60002, 120002);\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1807
+}

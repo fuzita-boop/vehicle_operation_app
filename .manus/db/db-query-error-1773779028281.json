@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, user_id, cycle_start_date, cycle_end_date, created_at FROM monthly_cycles ORDER BY user_id, cycle_start_date, id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user PaJKUxkzic33EKU.9fabc4a7d82e --database megdFLwq3PKkC44ndRH8R7 --execute SELECT id, user_id, cycle_start_date, cycle_end_date, created_at FROM monthly_cycles ORDER BY user_id, cycle_start_date, id;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1146 (42S02) at line 1: Table 'megdflwq3pkkc44ndrh8r7.monthly_cycles' doesn't exist"
+  ]
+}

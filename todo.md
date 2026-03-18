@@ -183,3 +183,7 @@
 - [x] 月次レポートのサイクル切り替えが遅い問題を修正（currentCycle/allCyclesを並列取得・useMemoで即時反映）
 - [x] 前サイクルの記録を編集できるよう日次記録ページにサイクル切り替えUIを追加
 - [x] 日次記録入力画面の最上部にホームへ戻るボタンを追加
+
+## Phase 31: 月次レポートの重複サイクル問題修正
+- [x] DBの重複サイクルレコードを調査・削除（cycleId=2の15件の日次記録をcycleId=1に移行して重複サイクルを削除）
+- [x] サーバー側のgetOrCreateMonthlyCycleをuserId+cycleStartDateのみで一意判定するよう修正（driverId/vehicleId変更時はUPDATE）
