@@ -193,3 +193,9 @@
 - [x] getOrCreateMonthlyCycleのDB検索もYYYY-MM-DD文字列比較に変更（タイムゾーンズれ防止）
 - [x] DBに4月サイクル（2026/04/16〜2026/05/15）を手動作成（userId=1）
 - [x] 重複サイクルを再度一括削除
+
+## Phase 33: 月次レポートPDFダウンロード機能
+- [x] pdfkit + @types/pdfkit + NotoSansCJKjpフォントをインストール
+- [x] server/pdfGenerator.tsで日本語対応のA4 PDF生成ロジックを実装
+- [x] server/pdfRoutes.tsで認証付き/api/pdf/monthly-reportエンドポイントを実装
+- [x] MonthlyReportに緑色のPDFダウンロードボタンを追加

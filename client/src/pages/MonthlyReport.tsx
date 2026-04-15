@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import VehicleLayout from "@/components/VehicleLayout";
 import { trpc } from "@/lib/trpc";
 import { Link } from "wouter";
-import { ArrowLeft, Printer, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Printer, ChevronLeft, ChevronRight, Download } from "lucide-react";
 
 interface ReportRecord {
   id?: number;
@@ -190,6 +190,36 @@ export default function MonthlyReport() {
       setSelectedCycleId(cycleOptions[currentIndex - 1].id);
     }
   };
+
+  // PDFダウンロード
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const handleDownloadPdf = useCallback(async () => {
+    if (!activeCycleId) return;
+    setIsPdfLoading(true);
+    try {
+      const response = await fetch(`/api/pdf/monthly-report?cycleId=${activeCycleId}`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("PDF生成に失敗しました");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      // Content-Dispositionのファイル名を取得
+      const disposition = response.headers.get("Content-Disposition") ?? "";
+      const match = disposition.match(/filename\*=UTF-8''(.+)/);
+      a.download = match ? decodeURIComponent(match[1]) : `運行日報_${activeCycleId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("PDFのダウンロードに失敗しました。もう一度お試しください。");
+      console.error(err);
+    } finally {
+      setIsPdfLoading(false);
+    }
+  }, [activeCycleId]);
 
   // 印刷用スタンドアロンHTML生成
   const handlePrint = useCallback(() => {
@@ -591,7 +621,7 @@ export default function MonthlyReport() {
 
       {/* アクションボタン */}
       <div className="mt-8">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 mb-3">
           <button
             onClick={handlePrint}
             className="flex items-center justify-center gap-2 py-3 rounded-lg font-medium shadow-md transition-all text-white"
@@ -601,16 +631,27 @@ export default function MonthlyReport() {
             印刷
           </button>
 
-          <Link
-            href="/"
-            className="btn-secondary flex items-center justify-center gap-2 py-3"
+          <button
+            onClick={handleDownloadPdf}
+            disabled={isPdfLoading || !activeCycleId}
+            className="flex items-center justify-center gap-2 py-3 rounded-lg font-medium shadow-md transition-all text-white disabled:opacity-50"
+            style={{ backgroundColor: isPdfLoading ? "#6b7280" : "#059669" }}
           >
-            <ArrowLeft className="h-5 w-5" />
-            ホーム
-          </Link>
+            <Download className="h-5 w-5" />
+            {isPdfLoading ? "生成中..." : "PDFダウンロード"}
+          </button>
         </div>
+
+        <Link
+          href="/"
+          className="btn-secondary flex items-center justify-center gap-2 py-3 w-full"
+        >
+          <ArrowLeft className="h-5 w-5" />
+          ホーム
+        </Link>
+
         <p className="mt-3 text-xs text-center" style={{ color: "#888" }}>
-          ※ 印刷画面で「PDFに保存」を選択するとPDFとして保存できます
+          ※「印刷」はブラウザの印刷機能を使用します。「PDFダウンロード」はPDFファイルを直接保存します。
         </p>
       </div>
     </VehicleLayout>
