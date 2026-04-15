@@ -1,9 +1,17 @@
 import PDFDocument from "pdfkit";
-import path from "path";
-import { fileURLToPath } from "url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const FONT_PATH = path.join(__dirname, "fonts", "NotoSansCJKjp-Regular.otf");
+const FONT_CDN_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663217122276/megdFLwq3PKkC44ndRH8R7/NotoSansCJKjp-Regular_69dda62e.otf";
+
+// フォントバッファをキャッシュ（起動後初回のみDL）
+let _fontBuffer: Buffer | null = null;
+async function getFontBuffer(): Promise<Buffer> {
+  if (_fontBuffer) return _fontBuffer;
+  const res = await fetch(FONT_CDN_URL);
+  if (!res.ok) throw new Error(`Failed to fetch font: ${res.status}`);
+  const arrayBuffer = await res.arrayBuffer();
+  _fontBuffer = Buffer.from(arrayBuffer);
+  return _fontBuffer;
+}
 
 export interface DailyRecordRow {
   recordDate: string; // YYYY-MM-DD
@@ -32,7 +40,8 @@ function calcDistance(dep: number, arr: number | null): string {
   return (arr - dep).toFixed(1);
 }
 
-export function generateMonthlyReportPdf(opts: PdfReportOptions): Promise<Buffer> {
+export async function generateMonthlyReportPdf(opts: PdfReportOptions): Promise<Buffer> {
+  const fontBuffer = await getFontBuffer();
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
       size: "A4",
@@ -45,8 +54,8 @@ export function generateMonthlyReportPdf(opts: PdfReportOptions): Promise<Buffer
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    // フォント登録
-    doc.registerFont("JP", FONT_PATH);
+    // フォント登録（Bufferから直接読み込み）
+    doc.registerFont("JP", fontBuffer);
     doc.font("JP");
 
     const pageWidth = doc.page.width - 60; // 両端30pxマージン
