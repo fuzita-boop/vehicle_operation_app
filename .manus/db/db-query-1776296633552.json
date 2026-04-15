@@ -1,0 +1,100 @@
+{
+  "query": "SELECT id, userId, cycleStartDate, cycleEndDate FROM monthlyCycles ORDER BY userId, cycleStartDate;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user PaJKUxkzic33EKU.9fabc4a7d82e --database megdFLwq3PKkC44ndRH8R7 --execute SELECT id, userId, cycleStartDate, cycleEndDate FROM monthlyCycles ORDER BY userId, cycleStartDate;",
+  "rows": [
+    {
+      "id": "1",
+      "userId": "1",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15"
+    },
+    {
+      "id": "120001",
+      "userId": "1",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    },
+    {
+      "id": "30001",
+      "userId": "690001",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15"
+    },
+    {
+      "id": "210001",
+      "userId": "690001",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    },
+    {
+      "id": "210002",
+      "userId": "690001",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    },
+    {
+      "id": "60001",
+      "userId": "1320001",
+      "cycleStartDate": "2026-02-16",
+      "cycleEndDate": "2026-03-15"
+    },
+    {
+      "id": "90001",
+      "userId": "1320001",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    },
+    {
+      "id": "150002",
+      "userId": "3270002",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    },
+    {
+      "id": "150001",
+      "userId": "3270002",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    },
+    {
+      "id": "180001",
+      "userId": "3900009",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    },
+    {
+      "id": "180002",
+      "userId": "3900009",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    },
+    {
+      "id": "240001",
+      "userId": "3960001",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    },
+    {
+      "id": "240002",
+      "userId": "3960001",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    },
+    {
+      "id": "240003",
+      "userId": "3960027",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    },
+    {
+      "id": "240004",
+      "userId": "3960027",
+      "cycleStartDate": "2026-03-16",
+      "cycleEndDate": "2026-04-15"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuserId\tcycleStartDate\tcycleEndDate\n1\t1\t2026-02-16\t2026-03-15\n120001\t1\t2026-03-16\t2026-04-15\n30001\t690001\t2026-02-16\t2026-03-15\n210001\t690001\t2026-03-16\t2026-04-15\n210002\t690001\t2026-03-16\t2026-04-15\n60001\t1320001\t2026-02-16\t2026-03-15\n90001\t1320001\t2026-03-16\t2026-04-15\n150002\t3270002\t2026-03-16\t2026-04-15\n150001\t3270002\t2026-03-16\t2026-04-15\n180001\t3900009\t2026-03-16\t2026-04-15\n180002\t3900009\t2026-03-16\t2026-04-15\n240001\t3960001\t2026-03-16\t2026-04-15\n240002\t3960001\t2026-03-16\t2026-04-15\n240003\t3960027\t2026-03-16\t2026-04-15\n240004\t3960027\t2026-03-16\t2026-04-15\n",
+  "stderr": "",
+  "execution_time_ms": 1656
+}

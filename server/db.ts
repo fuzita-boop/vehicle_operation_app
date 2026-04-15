@@ -139,16 +139,19 @@ export async function getOrCreateMonthlyCycle(userId: number, driverId: number, 
   if (!db) throw new Error("Database not available");
 
   // userId + cycleStartDate の組み合わせで一意判定（driverId/vehicleIdの変更に対応）
-  const existing = await db
+  // Date型をYYYY-MM-DD文字列に変換して比較（タイムゾーンズれ防止）
+  const startStr = `${cycleStartDate.getUTCFullYear()}-${String(cycleStartDate.getUTCMonth()+1).padStart(2,'0')}-${String(cycleStartDate.getUTCDate()).padStart(2,'0')}`;
+  const allCycles = await db
     .select()
     .from(monthlyCycles)
-    .where(
-      and(
-        eq(monthlyCycles.userId, userId),
-        eq(monthlyCycles.cycleStartDate, cycleStartDate)
-      )
-    )
-    .limit(1);
+    .where(eq(monthlyCycles.userId, userId));
+  const existing = allCycles.filter((c: any) => {
+    const d = c.cycleStartDate;
+    const s = d instanceof Date
+      ? `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`
+      : String(d).split('T')[0];
+    return s === startStr;
+  });
 
   if (existing.length > 0) {
     // driverId/vehicleIdが変わっていれば更新する

@@ -50,19 +50,40 @@ export const appRouter = router({
       
       if (!driver.id || !vehicle.id) return null;
       
-      const today = new Date();
-      const day = today.getDate();
-      let cycleStart, cycleEnd;
+      // JST基準で日付を計算（UTC+9）
+      const nowJST = new Date(Date.now() + 9 * 60 * 60 * 1000);
+      const year = nowJST.getUTCFullYear();
+      const month = nowJST.getUTCMonth(); // 0-indexed
+      const day = nowJST.getUTCDate();
       
+      let cycleStartStr: string, cycleEndStr: string;
       if (day >= 16) {
-        cycleStart = new Date(today.getFullYear(), today.getMonth(), 16);
-        cycleEnd = new Date(today.getFullYear(), today.getMonth() + 1, 15);
+        // 当月16日〜翌月15日
+        cycleStartStr = `${year}-${String(month + 1).padStart(2, '0')}-16`;
+        const endYear = month === 11 ? year + 1 : year;
+        const endMonth = month === 11 ? 1 : month + 2;
+        cycleEndStr = `${endYear}-${String(endMonth).padStart(2, '0')}-15`;
       } else {
-        cycleStart = new Date(today.getFullYear(), today.getMonth() - 1, 16);
-        cycleEnd = new Date(today.getFullYear(), today.getMonth(), 15);
+        // 前月16日〜当月15日
+        const startYear = month === 0 ? year - 1 : year;
+        const startMonth = month === 0 ? 12 : month;
+        cycleStartStr = `${startYear}-${String(startMonth).padStart(2, '0')}-16`;
+        cycleEndStr = `${year}-${String(month + 1).padStart(2, '0')}-15`;
       }
       
-      return await getOrCreateMonthlyCycle(ctx.user.id, driver.id, vehicle.id, cycleStart, cycleEnd);
+      // YYYY-MM-DD文字列をnoon UTCのDateに変換（DBの日付型と一致させる）
+      const [sy, sm, sd] = cycleStartStr.split('-').map(Number);
+      const [ey, em, ed] = cycleEndStr.split('-').map(Number);
+      const cycleStart = new Date(Date.UTC(sy, sm - 1, sd, 12, 0, 0));
+      const cycleEnd = new Date(Date.UTC(ey, em - 1, ed, 12, 0, 0));
+      
+      const cycle = await getOrCreateMonthlyCycle(ctx.user.id, driver.id, vehicle.id, cycleStart, cycleEnd);
+      // Return dates as YYYY-MM-DD strings
+      return {
+        ...cycle,
+        cycleStartDate: cycleStartStr,
+        cycleEndDate: cycleEndStr,
+      };
     }),
     addRecord: protectedProcedure.input((val: any) => val as {
       cycleId: number;
@@ -130,16 +151,27 @@ export const appRouter = router({
       const driver = await getOrCreateDriver(ctx.user.id, "");
       const vehicle = await getOrCreateVehicle(ctx.user.id, "");
       if (!driver.id || !vehicle.id) return { count: 0 };
-      const today = new Date();
-      const day = today.getDate();
-      let cycleStart, cycleEnd;
+      // JST基準で日付を計算（UTC+9）
+      const nowJST = new Date(Date.now() + 9 * 60 * 60 * 1000);
+      const year = nowJST.getUTCFullYear();
+      const month = nowJST.getUTCMonth();
+      const day = nowJST.getUTCDate();
+      let cycleStartStr: string, cycleEndStr: string;
       if (day >= 16) {
-        cycleStart = new Date(today.getFullYear(), today.getMonth(), 16);
-        cycleEnd = new Date(today.getFullYear(), today.getMonth() + 1, 15);
+        cycleStartStr = `${year}-${String(month + 1).padStart(2, '0')}-16`;
+        const endYear = month === 11 ? year + 1 : year;
+        const endMonth = month === 11 ? 1 : month + 2;
+        cycleEndStr = `${endYear}-${String(endMonth).padStart(2, '0')}-15`;
       } else {
-        cycleStart = new Date(today.getFullYear(), today.getMonth() - 1, 16);
-        cycleEnd = new Date(today.getFullYear(), today.getMonth(), 15);
+        const startYear = month === 0 ? year - 1 : year;
+        const startMonth = month === 0 ? 12 : month;
+        cycleStartStr = `${startYear}-${String(startMonth).padStart(2, '0')}-16`;
+        cycleEndStr = `${year}-${String(month + 1).padStart(2, '0')}-15`;
       }
+      const [sy, sm, sd] = cycleStartStr.split('-').map(Number);
+      const [ey, em, ed] = cycleEndStr.split('-').map(Number);
+      const cycleStart = new Date(Date.UTC(sy, sm - 1, sd, 12, 0, 0));
+      const cycleEnd = new Date(Date.UTC(ey, em - 1, ed, 12, 0, 0));
       const cycle = await getOrCreateMonthlyCycle(ctx.user.id, driver.id, vehicle.id, cycleStart, cycleEnd);
       if (!cycle?.id) return { count: 0 };
       const records = await getDailyRecordsByCycle(cycle.id);

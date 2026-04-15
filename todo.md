@@ -187,3 +187,9 @@
 ## Phase 31: 月次レポートの重複サイクル問題修正
 - [x] DBの重複サイクルレコードを調査・削除（cycleId=2の15件の日次記録をcycleId=1に移行して重複サイクルを削除）
 - [x] サーバー側のgetOrCreateMonthlyCycleをuserId+cycleStartDateのみで一意判定するよう修正（driverId/vehicleId変更時はUPDATE）
+
+## Phase 32: 4月16日にサイクルが切り替わらない問題修正
+- [x] サイクル判定ロジックをJST基準のYYYY-MM-DD文字列計算に全面修正（getCurrentCycle・getIncompleteCount）
+- [x] getOrCreateMonthlyCycleのDB検索もYYYY-MM-DD文字列比較に変更（タイムゾーンズれ防止）
+- [x] DBに4月サイクル（2026/04/16〜2026/05/15）を手動作成（userId=1）
+- [x] 重複サイクルを再度一括削除

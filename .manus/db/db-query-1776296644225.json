@@ -1,0 +1,9 @@
+{
+  "query": "DELETE FROM monthlyCycles WHERE id NOT IN (\n  SELECT keep_id FROM (\n    SELECT MIN(id) as keep_id FROM monthlyCycles GROUP BY userId, cycleStartDate\n  ) t\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user PaJKUxkzic33EKU.9fabc4a7d82e --database megdFLwq3PKkC44ndRH8R7 --execute DELETE FROM monthlyCycles WHERE id NOT IN (\n  SELECT keep_id FROM (\n    SELECT MIN(id) as keep_id FROM monthlyCycles GROUP BY userId, cycleStartDate\n  ) t\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1610
+}
