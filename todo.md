@@ -199,3 +199,6 @@
 - [x] server/pdfGenerator.tsで日本語対応のA4 PDF生成ロジックを実装
 - [x] server/pdfRoutes.tsで認証付き/api/pdf/monthly-reportエンドポイントを実装
 - [x] MonthlyReportに緑色のPDFダウンロードボタンを追加
+
+## Phase 34: 印刷とPDFのレイアウト統一
+- [x] pdfGenerator.tsを印刷HTMLと同じ構成に全面書き直し（タイトル・運転者名・車両番号・対象期間帯・テーブル・合計行・ガソリン代欄・フッター）
