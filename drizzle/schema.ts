@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, date } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal, date, uniqueIndex } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -61,7 +61,10 @@ export const monthlyCycles = mysqlTable("monthlyCycles", {
   cycleEndDate: date("cycleEndDate").notNull(), // 翌月15日
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  // 同一ユーザー・同一期間の重複サイクル作成をDBレベルで防止
+  userCycleUnique: uniqueIndex("monthlyCycles_userId_cycleStartDate_unique").on(table.userId, table.cycleStartDate),
+}));
 
 export type MonthlyCycle = typeof monthlyCycles.$inferSelect;
 export type InsertMonthlyCycle = typeof monthlyCycles.$inferInsert;

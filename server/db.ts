@@ -1,4 +1,5 @@
 import { eq, and, asc } from "drizzle-orm";
+import { getCurrentCycleDates, dateStrToNoonUTC, toDateStr } from "../shared/jst";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, drivers, vehicles, monthlyCycles, dailyRecords, pushSubscriptions } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -355,16 +356,10 @@ export async function getIncompleteArrivalsByUser(): Promise<Map<number, number>
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const today = new Date();
-  const day = today.getDate();
-  let cycleStart: Date, cycleEnd: Date;
-  if (day >= 16) {
-    cycleStart = new Date(today.getFullYear(), today.getMonth(), 16);
-    cycleEnd = new Date(today.getFullYear(), today.getMonth() + 1, 15);
-  } else {
-    cycleStart = new Date(today.getFullYear(), today.getMonth() - 1, 16);
-    cycleEnd = new Date(today.getFullYear(), today.getMonth(), 15);
-  }
+  // JST基準で現在サイクルの日付を取得（shared/jst.tsに集約）
+  const { cycleStartDate, cycleEndDate } = getCurrentCycleDates();
+  const cycleStart = dateStrToNoonUTC(cycleStartDate);
+  const cycleEnd = dateStrToNoonUTC(cycleEndDate);
 
   // 現在サイクルの全サイクルを取得
   const cycles = await db

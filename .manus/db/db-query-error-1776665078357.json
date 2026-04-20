@@ -1,0 +1,8 @@
+{
+  "query": "ALTER TABLE `monthlyCycles` ADD CONSTRAINT `monthlyCycles_userId_cycleStartDate_unique` UNIQUE(`userId`,`cycleStartDate`);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user PaJKUxkzic33EKU.9fabc4a7d82e --database megdFLwq3PKkC44ndRH8R7 --execute ALTER TABLE `monthlyCycles` ADD CONSTRAINT `monthlyCycles_userId_cycleStartDate_unique` UNIQUE(`userId`,`cycleStartDate`);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1062 (23000) at line 1: Duplicate entry '?' for key 'monthlyCycles.monthlyCycles_userId_cycleStartDate_unique'"
+  ]
+}

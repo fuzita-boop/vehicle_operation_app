@@ -202,3 +202,10 @@
 
 ## Phase 34: 印刷とPDFのレイアウト統一
 - [x] pdfGenerator.tsを印刷HTMLと同じ構成に全面書き直し（タイトル・運転者名・車両番号・対象期間帯・テーブル・合計行・ガソリン代欄・フッター）
+
+## Phase 35: JST日付管理強化（月次切り替わりの確実化）
+- [x] shared/jst.tsを新規作成（todayJST/getCycleDatesForDate/getCurrentCycleDates/dateStrToNoonUTC/toDateStrを集約）
+- [x] server/routers.tsをshared/jst.ts経由に全面リファクタリング（サイクル判定の重複コードを削除）
+- [x] server/db.tsのgetIncompleteArrivalsByUserもJST基準に修正
+- [x] monthlyCyclesテーブルに(userId, cycleStartDate)UNIQUE制約を追加（重複サイクルを事前削除）
+- [x] server/jst.test.tsでサイクル判定ロジックのユニットテストを追加（15件）→全件25件パス

@@ -1,0 +1,1 @@
+ALTER TABLE `monthlyCycles` ADD CONSTRAINT `monthlyCycles_userId_cycleStartDate_unique` UNIQUE(`userId`,`cycleStartDate`);
