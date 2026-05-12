@@ -209,3 +209,12 @@
 - [x] server/db.tsのgetIncompleteArrivalsByUserもJST基準に修正
 - [x] monthlyCyclesテーブルに(userId, cycleStartDate)UNIQUE制約を追加（重複サイクルを事前削除）
 - [x] server/jst.test.tsでサイクル判定ロジックのユニットテストを追加（15件）→全件25件パス
+
+## Phase 36: 備考欄の追加（日次記録・月次レポート・印刷・PDF）
+- [x] dailyRecordsテーブルにnotes列を追加・マイグレーション実行
+- [x] server/db.tsのaddDailyRecord/updateDailyRecordにnotes対応
+- [x] server/routers.tsのaddRecord/updateRecordにnotes対応
+- [x] DailyRecord入力画面に備考テキストエリアを追加（出発フォーム・編集フォーム・記録カード表示）
+- [x] MonthlyReportの一覧テーブルに備考列を追加
+- [x] 印刷HTMLに備考列を追加（A4縦に収まるよう列幅調整）
+- [x] pdfGenerator.tsに備考列を追加（A4縦に収まるよう列幅調整）

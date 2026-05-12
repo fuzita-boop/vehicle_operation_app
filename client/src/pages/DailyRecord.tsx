@@ -44,6 +44,7 @@ interface DailyRecordData {
   arrivalTime: string | null;
   departureDistance: number | string;
   arrivalDistance: number | string | null;
+  notes?: string | null;
   cycleId?: number;
   createdAt?: Date;
   updatedAt?: Date;
@@ -53,6 +54,7 @@ interface DepartureForm {
   recordDate: string;
   departureTime: string;
   departureDistance: string;
+  notes: string;
 }
 
 interface ArrivalEditForm {
@@ -72,6 +74,7 @@ export default function DailyRecord() {
     recordDate: new Date().toISOString().split("T")[0],
     departureTime: "",
     departureDistance: "",
+    notes: "",
   });
 
   const [records, setRecords] = useState<DailyRecordData[]>([]);
@@ -240,12 +243,14 @@ export default function DailyRecord() {
         arrivalTime: null,
         departureDistance: depDist,
         arrivalDistance: null,
+        notes: departureForm.notes || null,
       });
 
       setDepartureForm({
         recordDate: new Date().toISOString().split("T")[0],
         departureTime: "",
         departureDistance: "",
+        notes: "",
       });
 
       await refetch();
@@ -340,6 +345,7 @@ export default function DailyRecord() {
     setEditForm(null);
   };
 
+  // handleSaveEdit - notes対応
   const handleSaveEdit = async () => {
     if (!editForm || !editingId) return;
 
@@ -372,6 +378,7 @@ export default function DailyRecord() {
         arrivalTime: editForm.arrivalTime ?? undefined,
         departureDistance: depDistEdit,
         arrivalDistance: arrDistEdit ?? undefined,
+        notes: editForm.notes ?? null,
       });
       setEditingId(null);
       setEditForm(null);
@@ -534,6 +541,17 @@ export default function DailyRecord() {
                     placeholder="例: 12345.6"
                     onChange={(e) => setDepartureForm({ ...departureForm, departureDistance: e.target.value })}
                     className="input-elegant"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">備考（任意）</label>
+                  <textarea
+                    value={departureForm.notes}
+                    placeholder="訪問先・目的地・特記事項など"
+                    rows={2}
+                    onChange={(e) => setDepartureForm({ ...departureForm, notes: e.target.value })}
+                    className="input-elegant resize-none"
                   />
                 </div>
 
@@ -785,6 +803,16 @@ export default function DailyRecord() {
                           className="input-elegant text-sm"
                         />
                       </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium mb-1" style={{ color: '#555' }}>備考（任意）</label>
+                        <textarea
+                          value={editForm.notes ?? ""}
+                          placeholder="訪問先・目的地・特記事項など"
+                          rows={2}
+                          onChange={(e) => setEditForm({ ...editForm, notes: e.target.value || null })}
+                          className="input-elegant text-sm resize-none"
+                        />
+                      </div>
                     </div>
                   </div>
                 );
@@ -848,6 +876,11 @@ export default function DailyRecord() {
                         </p>
                       </div>
                     </div>
+                    {record.notes && (
+                      <div className="mt-2 text-xs px-1" style={{ color: '#555' }}>
+                        <span className="font-medium" style={{ color: '#888' }}>備考: </span>{record.notes}
+                      </div>
+                    )}
                     <div className="flex gap-1 ml-3 shrink-0">
                       {isIncomplete && (
                         <button

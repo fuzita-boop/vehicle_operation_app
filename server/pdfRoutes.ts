@@ -98,6 +98,7 @@ export function registerPdfRoutes(app: Express) {
           arrivalTime: r.arrivalTime ?? null,
           departureDistance: parseFloat(r.departureDistance as unknown as string),
           arrivalDistance: r.arrivalDistance != null ? parseFloat(r.arrivalDistance as unknown as string) : null,
+          notes: r.notes ?? null,
         })),
       });
 

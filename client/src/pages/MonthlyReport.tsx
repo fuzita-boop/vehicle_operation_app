@@ -11,6 +11,7 @@ interface ReportRecord {
   arrivalTime: string | null;
   departureDistance: number | string;
   arrivalDistance: number | string | null;
+  notes?: string | null;
   cycleId?: number;
   createdAt?: Date;
   updatedAt?: Date;
@@ -238,6 +239,7 @@ export default function MonthlyReport() {
       const dateStr = formatDateJP(record.recordDate);
 
       const incompleteClass = arrDist == null ? ' class="incomplete"' : '';
+      const notesVal = (record as any).notes ?? '';
       return `<tr>
         <td>${dateStr}</td>
         <td style="text-align:center">${record.departureTime}</td>
@@ -245,6 +247,7 @@ export default function MonthlyReport() {
         <td style="text-align:right">${depDist.toFixed(1)}</td>
         <td style="text-align:right"${incompleteClass}>${arrDist != null ? arrDist.toFixed(1) : "-"}</td>
         <td style="text-align:right;font-weight:600"${incompleteClass}>${arrDist != null ? distance.toFixed(1) : "-"}</td>
+        <td style="font-size:7pt;color:#444;white-space:normal;word-break:break-all">${notesVal}</td>
       </tr>`;
     }).join("");
 
@@ -401,12 +404,13 @@ export default function MonthlyReport() {
   <table>
     <thead>
       <tr>
-        <th style="width:16%">日付</th>
-        <th style="width:14%">出発時間</th>
-        <th style="width:14%">終了時間</th>
-        <th style="width:19%">出発時距離(km)</th>
-        <th style="width:19%">終了時距離(km)</th>
-        <th style="width:18%">走行距離(km)</th>
+        <th style="width:13%">日付</th>
+        <th style="width:11%">出発時間</th>
+        <th style="width:11%">終了時間</th>
+        <th style="width:15%">出発時距離(km)</th>
+        <th style="width:15%">終了時距離(km)</th>
+        <th style="width:13%">走行距離(km)</th>
+        <th style="width:22%">備考</th>
       </tr>
     </thead>
     <tbody>${emptyRow}${tableRows}</tbody>
@@ -541,7 +545,7 @@ export default function MonthlyReport() {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr>
-                {["日付", "出発時間", "終了時間", "出発距離", "終了距離", "走行距離"].map((h) => (
+                {["日付", "出発時間", "終了時間", "出発距離", "終了距離", "走行距離", "備考"].map((h) => (
                   <th
                     key={h}
                     className="border px-2 py-2 font-bold text-xs"
@@ -556,7 +560,7 @@ export default function MonthlyReport() {
               {records.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="border px-2 py-8 text-xs text-center"
                     style={{ color: "#888", borderColor: "#333" }}
                   >
@@ -597,6 +601,9 @@ export default function MonthlyReport() {
                       </td>
                       <td className="border px-2 py-1 text-xs text-right font-semibold" style={{ color: incomplete ? "#f59e0b" : "#000", borderColor: "#333" }}>
                         {arrDist != null ? distance.toFixed(1) : "-"}
+                      </td>
+                      <td className="border px-2 py-1 text-xs" style={{ color: "#444", borderColor: "#333", wordBreak: "break-all" }}>
+                        {record.notes ?? ""}
                       </td>
                     </tr>
                   );

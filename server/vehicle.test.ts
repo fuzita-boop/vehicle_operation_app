@@ -162,7 +162,8 @@ describe("vehicle.addRecord", () => {
       "08:00",
       "17:00",
       100,
-      150
+      150,
+      null
     );
   });
 
@@ -188,6 +189,7 @@ describe("vehicle.addRecord", () => {
       "07:30",
       null,
       200,
+      null,
       null
     );
   });
@@ -213,6 +215,7 @@ describe("vehicle.addRecord", () => {
       "06:00",
       null,
       300,
+      null,
       null
     );
   });
