@@ -19,7 +19,7 @@ export interface DailyRecordRow {
   arrivalTime: string | null;
   departureDistance: number;
   arrivalDistance: number | null;
-  notes?: string | null;
+  jobCount?: number | null;
 }
 
 export interface PdfReportOptions {
@@ -147,14 +147,14 @@ export async function generateMonthlyReportPdf(opts: PdfReportOptions): Promise<
     y += periodH + 6;
 
     // ===== テーブル =====
-    // 列定義（印刷HTMLと同じ比率: 13/11/11/15/15/13/22 → 備考列追加）
-    const totalParts = 13 + 11 + 11 + 15 + 15 + 13 + 22;
-    const colWidths = [13, 11, 11, 15, 15, 13, 22].map(p => Math.floor(PW * p / totalParts));
+    // 列定義（印刷HTMLと同じ比率: 13/11/11/15/15/13/14 → 稼働件数列）
+    const totalParts = 13 + 11 + 11 + 15 + 15 + 13 + 14;
+    const colWidths = [13, 11, 11, 15, 15, 13, 14].map(p => Math.floor(PW * p / totalParts));
     // 端数を最後の列に加算
     const sumW = colWidths.reduce((a, b) => a + b, 0);
     colWidths[6] += PW - sumW;
 
-    const colHeaders = ["日付", "出発時間", "終了時間", "出発時距離(km)", "終了時距離(km)", "走行距離(km)", "備考"];
+    const colHeaders = ["日付", "出発時間", "終了時間", "出発時距離(km)", "終了時距離(km)", "走行距離(km)", "稼働件数"];
     const rowH = 16;
 
     // ヘッダー行
@@ -193,9 +193,9 @@ export async function generateMonthlyReportPdf(opts: PdfReportOptions): Promise<
         rec.departureDistance.toFixed(1),
         isIncomplete ? "-" : rec.arrivalDistance!.toFixed(1),
         dist != null ? dist.toFixed(1) : "-",
-        rec.notes ?? "",
+        rec.jobCount != null ? `${rec.jobCount}件` : "",
       ];
-      const aligns: ("left" | "center" | "right")[] = ["left", "center", "center", "right", "right", "right", "left"];
+      const aligns: ("left" | "center" | "right")[] = ["left", "center", "center", "right", "right", "right", "center"];
       const colors = cells.map((_, i) => (isIncomplete && i >= 2 && i <= 5) ? "#b45309" : "#000000");
 
       cx = L;

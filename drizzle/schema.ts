@@ -81,7 +81,7 @@ export const dailyRecords = mysqlTable("dailyRecords", {
   arrivalTime: varchar("arrivalTime", { length: 5 }), // HH:MM形式（帰着後に入力）
   departureDistance: decimal("departureDistance", { precision: 10, scale: 1 }).notNull(), // 出発時走行距離
   arrivalDistance: decimal("arrivalDistance", { precision: 10, scale: 1 }), // 到着時走行距離（帰着後に入力）
-  notes: text("notes"), // 備考欄（任意）
+  jobCount: int("jobCount"), // 稼働件数（帰着時に入力、任意）
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

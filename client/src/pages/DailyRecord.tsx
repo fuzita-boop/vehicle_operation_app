@@ -44,7 +44,7 @@ interface DailyRecordData {
   arrivalTime: string | null;
   departureDistance: number | string;
   arrivalDistance: number | string | null;
-  notes?: string | null;
+  jobCount?: number | null;
   cycleId?: number;
   createdAt?: Date;
   updatedAt?: Date;
@@ -54,12 +54,12 @@ interface DepartureForm {
   recordDate: string;
   departureTime: string;
   departureDistance: string;
-  notes: string;
 }
 
 interface ArrivalEditForm {
   arrivalTime: string;
   arrivalDistance: string;
+  jobCount: string;
 }
 
 interface CycleOption {
@@ -74,7 +74,6 @@ export default function DailyRecord() {
     recordDate: new Date().toISOString().split("T")[0],
     departureTime: "",
     departureDistance: "",
-    notes: "",
   });
 
   const [records, setRecords] = useState<DailyRecordData[]>([]);
@@ -84,7 +83,7 @@ export default function DailyRecord() {
 
   // 帰着フォームの状態（出発フォームの下に表示）
   const [arrivalTargetRecord, setArrivalTargetRecord] = useState<DailyRecordData | null>(null);
-  const [arrivalEditForm, setArrivalEditForm] = useState<ArrivalEditForm>({ arrivalTime: "", arrivalDistance: "" });
+  const [arrivalEditForm, setArrivalEditForm] = useState<ArrivalEditForm>({ arrivalTime: "", arrivalDistance: "", jobCount: "" });
 
   // ?openArrival=1 クエリパラメータで帰着フォームを自動起動
   const searchString = useSearch();
@@ -194,7 +193,7 @@ export default function DailyRecord() {
     const target = incomplete[incomplete.length - 1]; // 最新の未入力記録
     autoOpenDone.current = true;
     setArrivalTargetRecord(target);
-    setArrivalEditForm({ arrivalTime: '', arrivalDistance: '' });
+    setArrivalEditForm({ arrivalTime: '', arrivalDistance: '', jobCount: '' });
 
     // 帰着フォームにスクロール
     setTimeout(() => {
@@ -243,14 +242,12 @@ export default function DailyRecord() {
         arrivalTime: null,
         departureDistance: depDist,
         arrivalDistance: null,
-        notes: departureForm.notes || null,
       });
 
       setDepartureForm({
         recordDate: new Date().toISOString().split("T")[0],
         departureTime: "",
         departureDistance: "",
-        notes: "",
       });
 
       await refetch();
@@ -264,7 +261,7 @@ export default function DailyRecord() {
   /** 帰着ボタン押下：対象記録をセットして帰着フォームを出発フォームの下に表示 */
   const handleOpenArrival = (record: DailyRecordData) => {
     setArrivalTargetRecord(record);
-    setArrivalEditForm({ arrivalTime: "", arrivalDistance: "" });
+    setArrivalEditForm({ arrivalTime: "", arrivalDistance: "", jobCount: "" });
     setEditingId(null);
     setEditForm(null);
     // フォームまでスクロール
@@ -276,7 +273,7 @@ export default function DailyRecord() {
   /** 帰着フォームを閉じる */
   const handleCancelArrival = () => {
     setArrivalTargetRecord(null);
-    setArrivalEditForm({ arrivalTime: "", arrivalDistance: "" });
+    setArrivalEditForm({ arrivalTime: "", arrivalDistance: "", jobCount: "" });
   };
 
   /** 帰着情報を保存 */
@@ -300,14 +297,17 @@ export default function DailyRecord() {
       if (!confirm(`終了走行距離(${arrDist})が出発走行距離(${depDist})より小さいですが、保存しますか？`)) return;
     }
 
+    const jobCountVal = arrivalEditForm.jobCount !== "" ? parseInt(arrivalEditForm.jobCount, 10) : null;
+
     try {
       await updateRecordMutation.mutateAsync({
         recordId: arrivalTargetRecord.id,
         arrivalTime: arrivalEditForm.arrivalTime,
         arrivalDistance: arrDist,
+        jobCount: isNaN(jobCountVal as number) ? null : jobCountVal,
       });
       setArrivalTargetRecord(null);
-      setArrivalEditForm({ arrivalTime: "", arrivalDistance: "" });
+      setArrivalEditForm({ arrivalTime: "", arrivalDistance: "", jobCount: "" });
       await refetch();
       // ?openArrival=1 経由の場合はホーム画面へ自動リダイレクト
       const params = new URLSearchParams(searchString);
@@ -378,7 +378,7 @@ export default function DailyRecord() {
         arrivalTime: editForm.arrivalTime ?? undefined,
         departureDistance: depDistEdit,
         arrivalDistance: arrDistEdit ?? undefined,
-        notes: editForm.notes ?? null,
+        jobCount: editForm.jobCount ?? null,
       });
       setEditingId(null);
       setEditForm(null);
@@ -544,17 +544,6 @@ export default function DailyRecord() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">備考（任意）</label>
-                  <textarea
-                    value={departureForm.notes}
-                    placeholder="訪問先・目的地・特記事項など"
-                    rows={2}
-                    onChange={(e) => setDepartureForm({ ...departureForm, notes: e.target.value })}
-                    className="input-elegant resize-none"
-                  />
-                </div>
-
                 <button
                   onClick={handleDeparture}
                   disabled={addRecordMutation.isPending}
@@ -643,6 +632,18 @@ export default function DailyRecord() {
                     value={arrivalEditForm.arrivalDistance}
                     placeholder="例: 12400.0"
                     onChange={(e) => setArrivalEditForm({ ...arrivalEditForm, arrivalDistance: e.target.value })}
+                    className="input-elegant"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">稼働件数（任意）</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={arrivalEditForm.jobCount}
+                    placeholder="例: 5"
+                    onChange={(e) => setArrivalEditForm({ ...arrivalEditForm, jobCount: e.target.value })}
                     className="input-elegant"
                   />
                 </div>
@@ -804,13 +805,14 @@ export default function DailyRecord() {
                         />
                       </div>
                       <div className="col-span-2">
-                        <label className="block text-xs font-medium mb-1" style={{ color: '#555' }}>備考（任意）</label>
-                        <textarea
-                          value={editForm.notes ?? ""}
-                          placeholder="訪問先・目的地・特記事項など"
-                          rows={2}
-                          onChange={(e) => setEditForm({ ...editForm, notes: e.target.value || null })}
-                          className="input-elegant text-sm resize-none"
+                        <label className="block text-xs font-medium mb-1" style={{ color: '#555' }}>稼働件数（任意）</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={editForm.jobCount ?? ""}
+                          placeholder="例: 5"
+                          onChange={(e) => setEditForm({ ...editForm, jobCount: e.target.value === "" ? null : parseInt(e.target.value, 10) || null })}
+                          className="input-elegant text-sm"
                         />
                       </div>
                     </div>
@@ -876,9 +878,9 @@ export default function DailyRecord() {
                         </p>
                       </div>
                     </div>
-                    {record.notes && (
+                    {record.jobCount != null && (
                       <div className="mt-2 text-xs px-1" style={{ color: '#555' }}>
-                        <span className="font-medium" style={{ color: '#888' }}>備考: </span>{record.notes}
+                        <span className="font-medium" style={{ color: '#888' }}>稼働件数: </span>{record.jobCount}件
                       </div>
                     )}
                     <div className="flex gap-1 ml-3 shrink-0">

@@ -218,3 +218,14 @@
 - [x] MonthlyReportの一覧テーブルに備考列を追加
 - [x] 印刷HTMLに備考列を追加（A4縦に収まるよう列幅調整）
 - [x] pdfGenerator.tsに備考列を追加（A4縦に収まるよう列幅調整）
+
+## Phase 37: 備考欄→稼働件数に変更・帰着時入力に移動
+- [x] DBのnotes列をjobCount（整数型）に変更（ALTER TABLE実行）
+- [x] server/db.ts・routers.ts・pdfRoutes.tsのnotes→jobCount対応
+- [x] DailyRecord.tsxの出発フォームから稼働件数欄を削除
+- [x] DailyRecord.tsxの帰着フォームに稼働件数（数値）入力欄を追加
+- [x] DailyRecord.tsxの編集フォーム・記録カード表示も「稼働件数」に変更
+- [x] MonthlyReport.tsxの列名を「稼働件数」に変更
+- [x] 印刷HTMLの列名を「稼働件数」に変更
+- [x] pdfGenerator.tsの列名を「稼働件数」に変更
+- [x] 全テスト25件パス

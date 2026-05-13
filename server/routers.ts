@@ -72,7 +72,7 @@ export const appRouter = router({
       arrivalTime?: string | null;
       departureDistance: number;
       arrivalDistance?: number | null;
-      notes?: string | null;
+      jobCount?: number | null;
     }).mutation(async ({ input }) => {
       const { addDailyRecord } = await import("./db");
       return await addDailyRecord(
@@ -82,7 +82,7 @@ export const appRouter = router({
         input.arrivalTime ?? null,
         input.departureDistance,
         input.arrivalDistance ?? null,
-        input.notes ?? null
+        input.jobCount ?? null
       );
     }),
 
@@ -98,7 +98,7 @@ export const appRouter = router({
       arrivalTime?: string;
       departureDistance?: number;
       arrivalDistance?: number;
-      notes?: string | null;
+      jobCount?: number | null;
     }).mutation(async ({ input }) => {
       const { updateDailyRecord } = await import("./db");
       const data: any = {};
@@ -107,7 +107,7 @@ export const appRouter = router({
       if (input.arrivalTime !== undefined) data.arrivalTime = input.arrivalTime;
       if (input.departureDistance !== undefined) data.departureDistance = input.departureDistance;
       if (input.arrivalDistance !== undefined) data.arrivalDistance = input.arrivalDistance;
-      if (input.notes !== undefined) data.notes = input.notes;
+      if (input.jobCount !== undefined) data.jobCount = input.jobCount;
       await updateDailyRecord(input.recordId, data);
       return { success: true };
     }),
@@ -171,7 +171,7 @@ export const appRouter = router({
           arrivalTime: r.arrivalTime ?? null,
           departureDistance: parseFloat(r.departureDistance),
           arrivalDistance: r.arrivalDistance != null ? parseFloat(r.arrivalDistance) : null,
-          notes: r.notes ?? null,
+          jobCount: r.jobCount ?? null,
         })),
       };
     }),

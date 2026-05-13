@@ -193,7 +193,7 @@ export async function addDailyRecord(
   arrivalTime: string | null,
   departureDistance: number,
   arrivalDistance: number | null,
-  notes?: string | null
+  jobCount?: number | null
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -205,7 +205,7 @@ export async function addDailyRecord(
     arrivalTime: arrivalTime ?? undefined,
     departureDistance: departureDistance.toString(),
     arrivalDistance: arrivalDistance != null ? arrivalDistance.toString() : undefined,
-    notes: notes ?? undefined,
+    jobCount: jobCount ?? undefined,
   });
 
   return result[0];
@@ -256,7 +256,7 @@ export async function updateDailyRecord(
     arrivalTime?: string | null;
     departureDistance?: number;
     arrivalDistance?: number | null;
-    notes?: string | null;
+    jobCount?: number | null;
   }
 ) {
   const db = await getDb();
@@ -268,7 +268,7 @@ export async function updateDailyRecord(
   if (data.arrivalTime !== undefined) updateSet.arrivalTime = data.arrivalTime;
   if (data.departureDistance !== undefined) updateSet.departureDistance = data.departureDistance.toString();
   if (data.arrivalDistance !== undefined) updateSet.arrivalDistance = data.arrivalDistance != null ? data.arrivalDistance.toString() : null;
-  if (data.notes !== undefined) updateSet.notes = data.notes;
+  if (data.jobCount !== undefined) updateSet.jobCount = data.jobCount;
 
   return await db.update(dailyRecords).set(updateSet).where(eq(dailyRecords.id, recordId));
 }
