@@ -4,6 +4,14 @@ import { trpc } from "@/lib/trpc";
 import { Link, useSearch, useLocation } from "wouter";
 import { ArrowLeft, Pencil, Trash2, Check, X, LogIn, LogOut, ChevronLeft, ChevronRight, Home } from "lucide-react";
 
+/** JST（日本時間）の今日の日付をYYYY-MM-DD形式で返す */
+function todayJST(): string {
+  const now = new Date();
+  // UTC+9に変換
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return jst.toISOString().split("T")[0];
+}
+
 /** YYYY-MM-DD 文字列を "YYYY/MM/DD" 形式の日本語表記に変換（UTC基準）*/
 function formatDateJP(val: string | Date | unknown): string {
   if (!val) return "";
@@ -71,7 +79,7 @@ interface CycleOption {
 
 export default function DailyRecord() {
   const [departureForm, setDepartureForm] = useState<DepartureForm>({
-    recordDate: new Date().toISOString().split("T")[0],
+    recordDate: todayJST(),
     departureTime: "",
     departureDistance: "",
   });
@@ -245,7 +253,7 @@ export default function DailyRecord() {
       });
 
       setDepartureForm({
-        recordDate: new Date().toISOString().split("T")[0],
+        recordDate: todayJST(),
         departureTime: "",
         departureDistance: "",
       });
