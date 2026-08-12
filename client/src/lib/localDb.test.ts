@@ -60,4 +60,35 @@ describe("localDb", () => {
     expect(selectIncompleteArrivalTarget(records, completed.id)?.id).toBe(latestIncomplete.id);
     expect(selectIncompleteArrivalTarget(records, null)?.id).toBe(latestIncomplete.id);
   });
+
+  it("誤入力の記録は日付・時刻・距離・稼働件数をまとめて編集でき、変更先のサイクルへ移動する", async () => {
+    const record = await addLocalRecord({
+      recordDate: "2026-04-15",
+      departureTime: "08:00",
+      departureDistance: 1000,
+      arrivalTime: "17:00",
+      arrivalDistance: 1020,
+      jobCount: 2,
+    });
+
+    await updateLocalRecord(record.id, {
+      recordDate: "2026-04-16",
+      departureTime: "08:15",
+      arrivalTime: "17:30",
+      departureDistance: 1010,
+      arrivalDistance: 1040.5,
+      jobCount: 6,
+    });
+
+    const updated = (await getLocalData()).records.find((item) => item.id === record.id);
+    expect(updated).toMatchObject({
+      recordDate: "2026-04-16",
+      cycleId: "cycle-2026-04-16",
+      departureTime: "08:15",
+      arrivalTime: "17:30",
+      departureDistance: 1010,
+      arrivalDistance: 1040.5,
+      jobCount: 6,
+    });
+  });
 });

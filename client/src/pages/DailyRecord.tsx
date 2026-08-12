@@ -1,7 +1,28 @@
-import { useLocalData } from "@/hooks/useLocalData";
 import VehicleLayout from "@/components/VehicleLayout";
-import { addLocalRecord, deleteLocalRecord, formatDateJP, getCycleForDate, LocalRecord, selectIncompleteArrivalTarget, todayJST, updateLocalRecord } from "@/lib/localDb";
-import { AlertTriangle, ArrowLeft, Check, ChevronLeft, ChevronRight, Home, LogIn, LogOut, Pencil, Trash2, X } from "lucide-react";
+import { useLocalData } from "@/hooks/useLocalData";
+import {
+  addLocalRecord,
+  deleteLocalRecord,
+  formatDateJP,
+  getCycleForDate,
+  LocalRecord,
+  selectIncompleteArrivalTarget,
+  todayJST,
+  updateLocalRecord,
+} from "@/lib/localDb";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Home,
+  LogIn,
+  LogOut,
+  Pencil,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 
@@ -13,8 +34,12 @@ const emptyDeparture = (): DepartureForm => ({ recordDate: todayJST(), departure
 const emptyArrival = (): ArrivalForm => ({ arrivalTime: "", arrivalDistance: "", jobCount: "" });
 const isIncomplete = (record: LocalRecord) => record.arrivalTime === null || record.arrivalDistance === null;
 
-function distance(record: LocalRecord) {
+function distance(record: Pick<LocalRecord, "arrivalDistance" | "departureDistance">) {
   return record.arrivalDistance === null ? null : Math.max(0, record.arrivalDistance - record.departureDistance);
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return <p className="mb-1 text-xs font-medium" style={{ color: "#888" }}>{children}</p>;
 }
 
 export default function DailyRecord() {
@@ -44,7 +69,9 @@ export default function DailyRecord() {
   const activeIndex = cycles.findIndex((cycle) => cycle.id === activeCycleId);
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId) ?? currentCycle;
   const records = useMemo(
-    () => (data?.records ?? []).filter((record) => record.cycleId === activeCycleId),
+    () => [...(data?.records ?? [])]
+      .filter((record) => record.cycleId === activeCycleId)
+      .sort((a, b) => a.recordDate.localeCompare(b.recordDate) || a.departureTime.localeCompare(b.departureTime)),
     [data?.records, activeCycleId],
   );
   const totalDistance = records.reduce((sum, record) => sum + (distance(record) ?? 0), 0);
@@ -72,9 +99,7 @@ export default function DailyRecord() {
 
   useEffect(() => {
     if (!arrivalTarget) return;
-    const timer = window.setTimeout(() => {
-      arrivalSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
+    const timer = window.setTimeout(() => arrivalSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     return () => window.clearTimeout(timer);
   }, [arrivalTarget?.id]);
 
@@ -140,6 +165,12 @@ export default function DailyRecord() {
       arrivalDistance: record.arrivalDistance?.toString() ?? "",
       jobCount: record.jobCount?.toString() ?? "",
     });
+    setMessage("");
+  };
+
+  const cancelEdit = () => {
+    setEditing(null);
+    setEditForm(null);
   };
 
   const saveEdit = async () => {
@@ -155,11 +186,12 @@ export default function DailyRecord() {
       setMessage("終了時走行距離を正しく入力してください。");
       return;
     }
+    if (arrivalDistance !== null && arrivalDistance < departureDistance && !window.confirm("終了時走行距離が出発時走行距離より小さくなっています。保存しますか？")) return;
     if (jobCount !== null && (!Number.isInteger(jobCount) || jobCount < 0)) {
       setMessage("稼働件数は0以上の整数で入力してください。");
       return;
     }
-    await updateLocalRecord(editing.id, {
+    const updated = await updateLocalRecord(editing.id, {
       recordDate: editForm.recordDate,
       departureTime: editForm.departureTime,
       departureDistance,
@@ -167,6 +199,7 @@ export default function DailyRecord() {
       arrivalDistance,
       jobCount,
     });
+    setSelectedCycleId(updated.cycleId);
     setEditing(null);
     setEditForm(null);
     await refresh();
@@ -176,6 +209,10 @@ export default function DailyRecord() {
   const removeRecord = async (record: LocalRecord) => {
     if (!window.confirm(`${formatDateJP(record.recordDate)}の記録を削除しますか？`)) return;
     await deleteLocalRecord(record.id);
+    if (arrivalTarget?.id === record.id) {
+      setArrivalTarget(null);
+      setArrivalForm(emptyArrival());
+    }
     await refresh();
     setMessage("記録を削除しました。");
   };
@@ -191,15 +228,15 @@ export default function DailyRecord() {
       {error && <p className="mb-5 rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">{error}</p>}
       {message && <p className="mb-5 rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-900">{message}</p>}
 
-      <section className="card-elegant mb-6">
-        <label className="mb-2 block text-sm font-medium">対象サイクルを選択</label>
-        <select className="input-elegant" value={activeCycleId} onChange={(event) => setSelectedCycleId(event.target.value)}>
+      <section className="card-elegant mb-6 p-4">
+        <p className="mb-3 text-xs font-medium text-muted-foreground">対象サイクルを選択</p>
+        <select className="input-elegant mb-3 text-sm" value={activeCycleId} onChange={(event) => setSelectedCycleId(event.target.value)} aria-label="対象サイクルを選択">
           {cycles.map((cycle) => <option key={cycle.id} value={cycle.id}>{formatDateJP(cycle.cycleStartDate)} 〜 {formatDateJP(cycle.cycleEndDate)}{cycle.id === currentCycle.id ? "（今月）" : ""}</option>)}
         </select>
-        <div className="mt-3 flex items-center gap-3">
-          <button className="btn-secondary flex items-center gap-1" disabled={activeIndex >= cycles.length - 1} onClick={() => setSelectedCycleId(cycles[activeIndex + 1]?.id ?? activeCycleId)}><ChevronLeft className="h-4 w-4" />前のサイクル</button>
-          <span className="flex-1 text-center text-sm font-medium text-blue-700">{formatDateJP(activeCycle.cycleStartDate)} 〜 {formatDateJP(activeCycle.cycleEndDate)}</span>
-          <button className="btn-secondary flex items-center gap-1" disabled={activeIndex <= 0} onClick={() => setSelectedCycleId(cycles[activeIndex - 1]?.id ?? activeCycleId)}>次のサイクル<ChevronRight className="h-4 w-4" /></button>
+        <div className="flex items-center justify-between gap-2">
+          <button type="button" className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-40" style={{ backgroundColor: "#f3f4f6", color: "#374151" }} disabled={activeIndex >= cycles.length - 1} onClick={() => setSelectedCycleId(cycles[activeIndex + 1]?.id ?? activeCycleId)}><ChevronLeft className="h-4 w-4" />前のサイクル</button>
+          <span className="flex-1 text-center text-sm font-medium" style={{ color: "#1d4ed8" }}>{formatDateJP(activeCycle.cycleStartDate)} 〜 {formatDateJP(activeCycle.cycleEndDate)}{activeCycle.id === currentCycle.id && <span className="ml-2 rounded-full px-2 py-0.5 text-xs" style={{ backgroundColor: "#dbeafe", color: "#1d4ed8" }}>今月</span>}</span>
+          <button type="button" className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-40" style={{ backgroundColor: "#f3f4f6", color: "#374151" }} disabled={activeIndex <= 0} onClick={() => setSelectedCycleId(cycles[activeIndex - 1]?.id ?? activeCycleId)}>次のサイクル<ChevronRight className="h-4 w-4" /></button>
         </div>
       </section>
 
@@ -212,25 +249,20 @@ export default function DailyRecord() {
               <label className="block text-sm font-medium">記録日<input type="date" className="input-elegant mt-2" value={departureForm.recordDate} onChange={(event) => setDepartureForm({ ...departureForm, recordDate: event.target.value })} /></label>
               <label className="block text-sm font-medium">出発時間 <span className="text-red-500">*</span><input type="time" className="input-elegant mt-2" value={departureForm.departureTime} onChange={(event) => setDepartureForm({ ...departureForm, departureTime: event.target.value })} /></label>
               <label className="block text-sm font-medium">出発時走行距離（km） <span className="text-red-500">*</span><input type="number" step="0.1" min="0" className="input-elegant mt-2" value={departureForm.departureDistance} onChange={(event) => setDepartureForm({ ...departureForm, departureDistance: event.target.value })} placeholder="例: 12345.6" /></label>
-              <button onClick={() => void saveDeparture()} className="btn-primary flex w-full items-center justify-center gap-2"><LogIn className="h-5 w-5" />出発記録を保存</button>
+              <button type="button" onClick={() => void saveDeparture()} className="btn-primary flex w-full items-center justify-center gap-2"><LogIn className="h-5 w-5" />出発記録を保存</button>
             </div>
           </section>
 
-          {arrivalTarget && (
-            <section ref={arrivalSectionRef} id="arrival-form" className="rounded-xl border-2 p-5 shadow-sm" style={{ borderColor: "#f97316", backgroundColor: "#fff7ed" }}>
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2"><LogOut className="h-5 w-5 text-orange-600" /><h2 className="text-lg font-semibold text-orange-900">帰着記録を入力</h2></div>
-                <span className="rounded-full bg-orange-200 px-3 py-1 text-xs font-bold text-orange-900">帰着入力中</span>
-              </div>
-              <div className="mb-4 rounded-lg border border-orange-300 bg-white p-3 text-sm text-orange-950"><p className="font-bold">出発情報（参照）</p><p className="mt-1">{formatDateJP(arrivalTarget.recordDate)}／{arrivalTarget.departureTime}／{arrivalTarget.departureDistance.toFixed(1)} km</p></div>
-              <div className="space-y-4">
-                <label className="block text-sm font-medium">終了時間 <span className="text-red-500">*</span><input type="time" className="input-elegant mt-2" value={arrivalForm.arrivalTime} onChange={(event) => setArrivalForm({ ...arrivalForm, arrivalTime: event.target.value })} /></label>
-                <label className="block text-sm font-medium">終了時走行距離（km） <span className="text-red-500">*</span><input type="number" step="0.1" min="0" className="input-elegant mt-2" value={arrivalForm.arrivalDistance} onChange={(event) => setArrivalForm({ ...arrivalForm, arrivalDistance: event.target.value })} /></label>
-                <label className="block text-sm font-medium">稼働件数（任意）<input type="number" step="1" min="0" inputMode="numeric" className="input-elegant mt-2" value={arrivalForm.jobCount} onChange={(event) => setArrivalForm({ ...arrivalForm, jobCount: event.target.value })} placeholder="例: 8" /></label>
-                <div className="grid gap-3 sm:grid-cols-2"><button onClick={() => void saveArrival()} className="btn-primary flex items-center justify-center gap-2"><Check className="h-4 w-4" />帰着情報を保存</button><button onClick={() => { setArrivalTarget(null); setArrivalForm(emptyArrival()); }} className="btn-secondary flex items-center justify-center gap-2"><X className="h-4 w-4" />キャンセル</button></div>
-              </div>
-            </section>
-          )}
+          {arrivalTarget && <section ref={arrivalSectionRef} id="arrival-form" className="rounded-xl border-2 p-5 shadow-sm" style={{ borderColor: "#f97316", backgroundColor: "#fff7ed" }}>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><LogOut className="h-5 w-5 text-orange-600" /><h2 className="text-lg font-semibold text-orange-900">帰着記録を入力</h2></div><span className="rounded-full bg-orange-200 px-3 py-1 text-xs font-bold text-orange-900">帰着入力中</span></div>
+            <div className="mb-4 rounded-lg border border-orange-300 bg-white p-3 text-sm text-orange-950"><p className="font-bold">出発情報（参照）</p><p className="mt-1">{formatDateJP(arrivalTarget.recordDate)}／{arrivalTarget.departureTime}／{arrivalTarget.departureDistance.toFixed(1)} km</p></div>
+            <div className="space-y-4">
+              <label className="block text-sm font-medium">終了時間 <span className="text-red-500">*</span><input type="time" className="input-elegant mt-2" value={arrivalForm.arrivalTime} onChange={(event) => setArrivalForm({ ...arrivalForm, arrivalTime: event.target.value })} /></label>
+              <label className="block text-sm font-medium">終了時走行距離（km） <span className="text-red-500">*</span><input type="number" step="0.1" min="0" className="input-elegant mt-2" value={arrivalForm.arrivalDistance} onChange={(event) => setArrivalForm({ ...arrivalForm, arrivalDistance: event.target.value })} /></label>
+              <label className="block text-sm font-medium">稼働件数（任意）<input type="number" step="1" min="0" inputMode="numeric" className="input-elegant mt-2" value={arrivalForm.jobCount} onChange={(event) => setArrivalForm({ ...arrivalForm, jobCount: event.target.value })} placeholder="例: 8" /></label>
+              <div className="grid gap-3 sm:grid-cols-2"><button type="button" onClick={() => void saveArrival()} className="btn-primary flex items-center justify-center gap-2"><Check className="h-4 w-4" />帰着情報を保存</button><button type="button" onClick={() => { setArrivalTarget(null); setArrivalForm(emptyArrival()); }} className="btn-secondary flex items-center justify-center gap-2"><X className="h-4 w-4" />キャンセル</button></div>
+            </div>
+          </section>}
         </div>
 
         <aside className="card-elegant h-fit"><h2 className="text-lg font-semibold">サイクル集計</h2><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between"><dt className="text-muted-foreground">記録日数</dt><dd className="font-bold">{records.length}日</dd></div><div className="flex justify-between"><dt className="text-muted-foreground">総走行距離</dt><dd className="font-bold">{totalDistance.toFixed(1)} km</dd></div><div className="flex justify-between"><dt className="text-muted-foreground">帰着未入力</dt><dd className="font-bold text-orange-700">{incompleteCount}件</dd></div></dl></aside>
@@ -241,9 +273,47 @@ export default function DailyRecord() {
         {records.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">このサイクルの記録はまだありません。</p> : <div className="space-y-3">{records.map((record) => {
           const recordIsIncomplete = isIncomplete(record);
           const isEditing = editing?.id === record.id;
+          const isArrivalTarget = arrivalTarget?.id === record.id;
           const driven = distance(record);
-          return <article key={record.id} className="rounded-xl border-l-4 p-4" style={recordIsIncomplete ? { borderColor: "#fdba74", borderLeftColor: "#f97316", backgroundColor: "#fff7ed" } : { borderColor: "var(--border)", backgroundColor: "var(--card)" }}>
-            {isEditing && editForm ? <div className="space-y-3"><h3 className="font-semibold">記録を編集</h3><div className="grid gap-3 sm:grid-cols-2"><label className="text-sm font-medium">記録日<input type="date" className="input-elegant mt-1" value={editForm.recordDate} onChange={(event) => setEditForm({ ...editForm, recordDate: event.target.value })} /></label><label className="text-sm font-medium">出発時間<input type="time" className="input-elegant mt-1" value={editForm.departureTime} onChange={(event) => setEditForm({ ...editForm, departureTime: event.target.value })} /></label><label className="text-sm font-medium">出発時走行距離<input type="number" step="0.1" className="input-elegant mt-1" value={editForm.departureDistance} onChange={(event) => setEditForm({ ...editForm, departureDistance: event.target.value })} /></label><label className="text-sm font-medium">終了時間<input type="time" className="input-elegant mt-1" value={editForm.arrivalTime} onChange={(event) => setEditForm({ ...editForm, arrivalTime: event.target.value })} /></label><label className="text-sm font-medium">終了時走行距離<input type="number" step="0.1" className="input-elegant mt-1" value={editForm.arrivalDistance} onChange={(event) => setEditForm({ ...editForm, arrivalDistance: event.target.value })} /></label><label className="text-sm font-medium">稼働件数<input type="number" step="1" min="0" className="input-elegant mt-1" value={editForm.jobCount} onChange={(event) => setEditForm({ ...editForm, jobCount: event.target.value })} /></label></div><div className="grid gap-3 sm:grid-cols-2"><button onClick={() => void saveEdit()} className="btn-primary">保存</button><button onClick={() => { setEditing(null); setEditForm(null); }} className="btn-secondary">キャンセル</button></div></div> : <><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><p className="font-semibold">{formatDateJP(record.recordDate)} <span className="ml-2 text-sm font-normal text-muted-foreground">{record.departureTime} 〜 {record.arrivalTime ?? "未入力"}</span></p>{recordIsIncomplete && <span className="rounded-full bg-orange-200 px-2 py-0.5 text-xs font-bold text-orange-900">帰着未入力</span>}</div><p className="mt-1 text-sm text-muted-foreground">{record.departureDistance.toFixed(1)} km → {record.arrivalDistance?.toFixed(1) ?? "—"} km ／ 走行距離: <strong className="text-foreground">{driven === null ? "—" : `${driven.toFixed(1)} km`}</strong>{record.jobCount !== null && <span> ／ 稼働件数: <strong className="text-foreground">{record.jobCount}件</strong></span>}</p>{recordIsIncomplete && <p className="mt-2 flex items-center gap-1 text-sm font-medium text-orange-800"><AlertTriangle className="h-4 w-4" />帰着後に「帰着」ボタンから終了情報を入力してください。</p>}</div><div className="flex gap-2">{recordIsIncomplete && <button onClick={() => openArrival(record)} className="rounded-lg bg-orange-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-700"><LogOut className="mr-1 inline h-4 w-4" />帰着</button>}<button onClick={() => beginEdit(record)} className="btn-secondary p-2" aria-label="編集"><Pencil className="h-4 w-4" /></button><button onClick={() => void removeRecord(record)} className="btn-secondary p-2 text-red-700" aria-label="削除"><Trash2 className="h-4 w-4" /></button></div></div></>}</article>;
+          const previewDeparture = editForm ? Number(editForm.departureDistance) : 0;
+          const previewArrival = editForm?.arrivalDistance.trim() === "" ? null : Number(editForm?.arrivalDistance);
+          const previewDistance = previewArrival === null || !Number.isFinite(previewArrival) || !Number.isFinite(previewDeparture) ? null : Math.max(0, previewArrival - previewDeparture);
+
+          if (isEditing && editForm) {
+            return <article key={record.id} className="card-elegant border-2 border-blue-400 p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold" style={{ color: "#1d4ed8" }}>記録を編集中</h3><div className="flex gap-2"><button type="button" onClick={() => void saveEdit()} className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium text-white" style={{ backgroundColor: "#16a34a" }}><Check className="h-4 w-4" />保存</button><button type="button" onClick={cancelEdit} className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium text-white" style={{ backgroundColor: "#6b7280" }}><X className="h-4 w-4" />取消</button></div></div>
+              <div className="grid grid-cols-2 gap-3">
+                <label><FieldLabel>記録日</FieldLabel><input type="date" className="input-elegant text-sm" value={editForm.recordDate} onChange={(event) => setEditForm({ ...editForm, recordDate: event.target.value })} /></label>
+                <div><FieldLabel>走行距離</FieldLabel><p className="mt-1 text-lg font-bold" style={{ color: "#1d4ed8" }}>{previewDistance === null ? "-" : `${previewDistance.toFixed(1)} km`}</p></div>
+                <label><FieldLabel>出発時間 *</FieldLabel><input type="time" className="input-elegant text-sm" value={editForm.departureTime} onChange={(event) => setEditForm({ ...editForm, departureTime: event.target.value })} /></label>
+                <label><FieldLabel>終了時間（任意）</FieldLabel><input type="time" className="input-elegant text-sm" value={editForm.arrivalTime} onChange={(event) => setEditForm({ ...editForm, arrivalTime: event.target.value })} /></label>
+                <label><FieldLabel>出発走行距離（km） *</FieldLabel><input type="number" step="0.1" min="0" className="input-elegant text-sm" value={editForm.departureDistance} onChange={(event) => setEditForm({ ...editForm, departureDistance: event.target.value })} /></label>
+                <label><FieldLabel>終了走行距離（km）（任意）</FieldLabel><input type="number" step="0.1" min="0" className="input-elegant text-sm" value={editForm.arrivalDistance} onChange={(event) => setEditForm({ ...editForm, arrivalDistance: event.target.value })} placeholder="未入力" /></label>
+                <label className="col-span-2"><FieldLabel>稼働件数（任意）</FieldLabel><input type="number" min="0" step="1" className="input-elegant text-sm" value={editForm.jobCount} onChange={(event) => setEditForm({ ...editForm, jobCount: event.target.value })} placeholder="例: 5" /></label>
+              </div>
+            </article>;
+          }
+
+          return <article key={record.id} className="card-elegant p-4 transition-all" style={isArrivalTarget ? { borderLeft: "4px solid #d97706", backgroundColor: "#fffbeb" } : recordIsIncomplete ? { borderLeft: "4px solid #f59e0b" } : {}}>
+            {recordIsIncomplete && <div className="mb-2 flex items-center gap-1"><span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: "#fef3c7", color: "#92400e" }}>帰着未入力</span>{isArrivalTarget && <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: "#fed7aa", color: "#9a3412" }}>↑ 帰着入力中</span>}</div>}
+            <div className="flex items-center justify-between gap-3">
+              <div className="grid flex-1 grid-cols-3 gap-3 text-sm sm:grid-cols-6">
+                <div><FieldLabel>日付</FieldLabel><p className="font-medium" style={{ color: "#111" }}>{formatDateJP(record.recordDate)}</p></div>
+                <div><FieldLabel>出発</FieldLabel><p className="font-medium" style={{ color: "#111" }}>{record.departureTime}</p></div>
+                <div><FieldLabel>終了</FieldLabel><p className="font-medium" style={{ color: recordIsIncomplete ? "#f59e0b" : "#111" }}>{record.arrivalTime ?? "未入力"}</p></div>
+                <div><FieldLabel>出発距離</FieldLabel><p className="font-medium" style={{ color: "#111" }}>{record.departureDistance.toFixed(1)}</p></div>
+                <div><FieldLabel>終了距離</FieldLabel><p className="font-medium" style={{ color: recordIsIncomplete ? "#f59e0b" : "#111" }}>{record.arrivalDistance?.toFixed(1) ?? "-"}</p></div>
+                <div><FieldLabel>走行距離</FieldLabel><p className="font-bold" style={{ color: recordIsIncomplete ? "#f59e0b" : "#1d4ed8" }}>{driven === null ? "-" : `${driven.toFixed(1)} km`}</p></div>
+              </div>
+              <div className="ml-1 flex shrink-0 gap-1">
+                {recordIsIncomplete && <button type="button" onClick={() => openArrival(record)} className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-white" style={{ backgroundColor: isArrivalTarget ? "#b45309" : "#d97706" }} title="帰着情報を入力"><LogOut className="h-3 w-3" />帰着</button>}
+                <button type="button" onClick={() => beginEdit(record)} className="rounded-md p-2 transition-colors hover:bg-blue-50" title="編集" aria-label="編集"><Pencil className="h-4 w-4" style={{ color: "#1d4ed8" }} /></button>
+                <button type="button" onClick={() => void removeRecord(record)} className="rounded-md p-2 transition-colors hover:bg-red-50" title="削除" aria-label="削除"><Trash2 className="h-4 w-4" style={{ color: "#dc2626" }} /></button>
+              </div>
+            </div>
+            {record.jobCount !== null && <p className="mt-3 text-xs" style={{ color: "#555" }}><span className="font-medium" style={{ color: "#888" }}>稼働件数：</span>{record.jobCount}件</p>}
+            {recordIsIncomplete && <p className="mt-2 flex items-center gap-1 text-sm font-medium text-orange-800"><AlertTriangle className="h-4 w-4" />帰着後に「帰着」ボタンから終了情報を入力してください。</p>}
+          </article>;
         })}</div>}
       </section>
     </VehicleLayout>
