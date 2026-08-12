@@ -247,5 +247,6 @@
 - [x] ローカル保存・バックアップ復元・オフライン起動・サブパスビルドをテスト（UI保存→JSONダウンロード→初期化→UI復元、Service Workerキャッシュ・通信元停止後の入力保存まで確認）
 - [x] GitHubリポジトリへの移行を実施（fuzita-boop/vehicle_operation_app のmainへ同期済み）
 - [ ] GitHub Pagesで公開（Settings → Pages のGitHub Actions設定と公開可否の確認待ち）
+- [ ] 承認済み：GitHubリポジトリを公開へ変更し、GitHub Pagesを有効化
 - [x] 既存サーバーDBの465件の日次記録を利用者ごとの個別移行JSONにエクスポート（8利用者分）
 - [x] 各個別移行JSONの件数・サイクル・関連プロフィールを検証（合計465件）

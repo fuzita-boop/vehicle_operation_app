@@ -10,6 +10,8 @@ GitHubの対象リポジトリで **Settings** → **Pages** を開き、公開�
 
 初回公開後、GitHub Pagesの反映には数分かかる場合があります。公開URLは一般的に `https://fuzita-boop.github.io/vehicle_operation_app/` です。GitHubのPages画面に表示される **Visit site** のURLを正として確認してください。[2]
 
+このリポジトリでは、2026年8月12日にPages設定画面で公開元を **GitHub Actions** に設定しました。以降は`main`ブランチへの更新または手動実行で`.github/workflows/deploy-pages.yml`が静的PWAを公開します。
+
 ## 参照
 
 [1]: https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site "Configuring a publishing source for your GitHub Pages site"
