@@ -32,6 +32,10 @@ GitHub Pages相当の`/vehicle_operation_app/`配下にビルド成果物を配�
 
 同じ通信元停止状態で、日次記録フォームに出発時間・出発時走行距離を入力して保存したところ、「出発記録を端末に保存しました。」と表示され、一覧・サイクル集計に1件の記録が反映されました。オフライン相当での入力・保存も確認済みです。
 
+GitHub Pagesの公開URL `https://fuzita-boop.github.io/vehicle_operation_app/` でホーム画面が正常に起動することを確認しました。続けて `/vehicle_operation_app/monthly-report` への遷移も成功し、公開環境でもサブパスのルーティング・月次レポート・A4印刷操作が利用可能です。
+
+公開URLで`/vehicle_operation_app/monthly-report`を直接指定しても月次レポートが表示され、404復帰を含むサブパスルーティングが機能することを確認しました。また、公開環境ではService Workerが制御中であり、スコープ`/vehicle_operation_app/`のWorkbox事前キャッシュが作成されています。
+
 ## 自動テスト
 
 `client/src/lib/localDb.test.ts`では、月次サイクルの境界日、IndexedDBへのプロフィール・日次記録保存、帰着情報・稼働件数の更新、JSONバックアップからの復元をテスト対象にしています。
