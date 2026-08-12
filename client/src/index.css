@@ -113,6 +113,11 @@
   --sidebar-ring: oklch(0.488 0.243 264.376);
 }
 
+.print-gasoline,
+.print-footer {
+  display: none;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -247,6 +252,24 @@
 
   .print-container .text-xs {
     font-size: 9px !important;
+  }
+
+  .print-gasoline,
+  .print-footer {
+    display: block !important;
+  }
+
+  .print-gasoline {
+    margin-top: 3mm !important;
+    padding: 2mm 3mm !important;
+    border: 1px solid #888 !important;
+    background: #fafafa !important;
+  }
+
+  .print-footer {
+    margin-top: 2mm !important;
+    padding-top: 1mm !important;
+    border-top: 1px solid #ccc !important;
   }
 
   /* Reduce all spacing */

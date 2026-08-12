@@ -139,7 +139,13 @@ export function selectIncompleteArrivalTarget(records: LocalRecord[], requestedR
     const requested = incomplete.find((record) => record.id === requestedRecordId);
     if (requested) return requested;
   }
-  return incomplete.at(-1) ?? null;
+  return incomplete.sort((a, b) => {
+    const byRecordDate = a.recordDate.localeCompare(b.recordDate);
+    if (byRecordDate !== 0) return byRecordDate;
+    const byDepartureTime = a.departureTime.localeCompare(b.departureTime);
+    if (byDepartureTime !== 0) return byDepartureTime;
+    return a.createdAt.localeCompare(b.createdAt);
+  }).at(-1) ?? null;
 }
 
 function makeId(prefix: string) {

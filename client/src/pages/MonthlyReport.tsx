@@ -1,58 +1,121 @@
 import VehicleLayout from "@/components/VehicleLayout";
 import { useLocalData } from "@/hooks/useLocalData";
 import { formatDateJP, getCycleForDate, LocalRecord, todayJST } from "@/lib/localDb";
-import { ChevronLeft, ChevronRight, Download, Home, Printer } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Printer } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
 
-function distance(record: LocalRecord) {
-  return record.arrivalDistance === null ? 0 : Math.max(0, record.arrivalDistance - record.departureDistance);
+function calculateDistance(record: LocalRecord) {
+  return record.arrivalDistance === null
+    ? 0
+    : Math.max(0, record.arrivalDistance - record.departureDistance);
 }
 
 export default function MonthlyReport() {
   const { data, error, isLoading } = useLocalData();
   const currentCycle = useMemo(() => getCycleForDate(todayJST()), []);
   const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
+
   const cycles = useMemo(() => {
     const available = data?.cycles ?? [];
-    const withCurrent = available.some((cycle) => cycle.id === currentCycle.id) ? available : [currentCycle, ...available];
+    const withCurrent = available.some((cycle) => cycle.id === currentCycle.id)
+      ? available
+      : [currentCycle, ...available];
     return [...withCurrent].sort((a, b) => b.cycleStartDate.localeCompare(a.cycleStartDate));
   }, [data?.cycles, currentCycle]);
+
   const activeCycleId = selectedCycleId ?? currentCycle.id;
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId) ?? currentCycle;
   const activeIndex = cycles.findIndex((cycle) => cycle.id === activeCycle.id);
-  const records = useMemo(() => (data?.records ?? []).filter((record) => record.cycleId === activeCycle.id), [data?.records, activeCycle.id]);
-  const totalDistance = records.reduce((sum, record) => sum + distance(record), 0);
-  const totalJobs = records.reduce((sum, record) => sum + (record.jobCount ?? 0), 0);
-  const printReport = () => window.print();
+  const records = useMemo(
+    () => [...(data?.records ?? [])]
+      .filter((record) => record.cycleId === activeCycle.id)
+      .sort((a, b) => a.recordDate.localeCompare(b.recordDate) || a.departureTime.localeCompare(b.departureTime)),
+    [data?.records, activeCycle.id],
+  );
+  const totalDistance = records.reduce((sum, record) => sum + calculateDistance(record), 0);
+  const driverName = data?.profile.driverName || "-";
+  const vehicleNumber = data?.profile.vehicleNumber || "-";
 
-  if (isLoading) return <VehicleLayout title="月次レポート"><p className="text-muted-foreground">端末内データを読み込んでいます…</p></VehicleLayout>;
+  const goToPreviousCycle = () => {
+    if (activeIndex < cycles.length - 1) setSelectedCycleId(cycles[activeIndex + 1].id);
+  };
+
+  const goToNextCycle = () => {
+    if (activeIndex > 0) setSelectedCycleId(cycles[activeIndex - 1].id);
+  };
+
+  if (isLoading) {
+    return <VehicleLayout title="月次レポート" subtitle="1ヶ月分の運行記録"><p className="text-muted-foreground">端末内データを読み込んでいます…</p></VehicleLayout>;
+  }
 
   return (
-    <VehicleLayout title="月次レポート" subtitle="端末内に保存された1ヶ月分の運行記録">
-      <div className="no-print mb-5 flex flex-wrap gap-3"><Link href="/" className="btn-secondary flex items-center gap-2"><Home className="h-4 w-4" />ホーム</Link><Link href="/daily-record" className="btn-secondary">日次記録</Link></div>
+    <VehicleLayout title="月次レポート" subtitle="1ヶ月分の運行記録">
       {error && <p className="no-print mb-5 rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">{error}</p>}
 
-      <section className="no-print card-elegant mb-6">
-        <label className="mb-2 block text-sm font-medium">対象サイクルを選択</label>
-        <select className="input-elegant" value={activeCycle.id} onChange={(event) => setSelectedCycleId(event.target.value)}>
-          {cycles.map((cycle) => <option key={cycle.id} value={cycle.id}>{formatDateJP(cycle.cycleStartDate)} 〜 {formatDateJP(cycle.cycleEndDate)}{cycle.id === currentCycle.id ? "（今月）" : ""}</option>)}
+      <section className="no-print card-elegant mb-6 p-4">
+        <p className="mb-3 text-xs font-medium text-muted-foreground">対象サイクルを選択</p>
+        <select className="input-elegant mb-3 text-sm" value={activeCycle.id} onChange={(event) => setSelectedCycleId(event.target.value)} aria-label="対象サイクルを選択">
+          {cycles.map((cycle) => (
+            <option key={cycle.id} value={cycle.id}>
+              {formatDateJP(cycle.cycleStartDate)} 〜 {formatDateJP(cycle.cycleEndDate)}{cycle.id === currentCycle.id ? "（今月）" : ""}
+            </option>
+          ))}
         </select>
-        <div className="mt-3 flex items-center gap-3"><button className="btn-secondary flex items-center gap-1" disabled={activeIndex >= cycles.length - 1} onClick={() => setSelectedCycleId(cycles[activeIndex + 1]?.id ?? activeCycle.id)}><ChevronLeft className="h-4 w-4" />前のサイクル</button><span className="flex-1 text-center text-sm font-medium text-blue-700">{formatDateJP(activeCycle.cycleStartDate)} 〜 {formatDateJP(activeCycle.cycleEndDate)}</span><button className="btn-secondary flex items-center gap-1" disabled={activeIndex <= 0} onClick={() => setSelectedCycleId(cycles[activeIndex - 1]?.id ?? activeCycle.id)}>次のサイクル<ChevronRight className="h-4 w-4" /></button></div>
+
+        <div className="flex items-center justify-between gap-2">
+          <button type="button" onClick={goToPreviousCycle} disabled={activeIndex >= cycles.length - 1} className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40" style={{ backgroundColor: "#f3f4f6", color: "#374151" }}>
+            <ChevronLeft className="h-4 w-4" />前のサイクル
+          </button>
+          <span className="flex-1 text-center text-sm font-medium" style={{ color: "#1d4ed8" }}>
+            {formatDateJP(activeCycle.cycleStartDate)} 〜 {formatDateJP(activeCycle.cycleEndDate)}
+            {activeCycle.id === currentCycle.id && <span className="ml-2 rounded-full px-2 py-0.5 text-xs" style={{ backgroundColor: "#dbeafe", color: "#1d4ed8" }}>今月</span>}
+          </span>
+          <button type="button" onClick={goToNextCycle} disabled={activeIndex <= 0} className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40" style={{ backgroundColor: "#f3f4f6", color: "#374151" }}>
+            次のサイクル<ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
       </section>
 
-      <article className="print-container card-elegant">
-        <h1 className="mb-1 text-center text-2xl font-bold text-foreground underline underline-offset-4">車両運行日報</h1>
-        <div className="mb-3 mt-4 grid grid-cols-2 gap-3 text-sm"><p>運転者名：<strong>{data?.profile.driverName || "未設定"}</strong></p><p>車両番号：<strong>{data?.profile.vehicleNumber || "未設定"}</strong></p></div>
-        <p className="mb-3 rounded bg-muted py-2 text-center text-sm">対象期間：{formatDateJP(activeCycle.cycleStartDate)} 〜 {formatDateJP(activeCycle.cycleEndDate)}</p>
-        <div className="overflow-x-auto"><table className="print-table table-elegant text-sm"><thead><tr><th>日付</th><th>出発<br />時間</th><th>終了<br />時間</th><th>出発時<br />距離</th><th>終了時<br />距離</th><th>走行<br />距離</th><th>稼働<br />件数</th></tr></thead><tbody>{records.length === 0 ? <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">この期間の記録はありません。</td></tr> : records.map((record) => <tr key={record.id}><td>{formatDateJP(record.recordDate)}</td><td>{record.departureTime}</td><td>{record.arrivalTime ?? "—"}</td><td>{record.departureDistance.toFixed(1)}</td><td>{record.arrivalDistance?.toFixed(1) ?? "—"}</td><td className="font-semibold">{record.arrivalDistance === null ? "—" : distance(record).toFixed(1)}</td><td>{record.jobCount ?? "—"}</td></tr>)}</tbody></table></div>
-        <div className="mt-4 flex flex-wrap justify-end gap-x-8 gap-y-2 border-t-2 border-black pt-3 text-lg font-semibold"><p>記録日数：{records.length}日</p><p>総走行距離：{totalDistance.toFixed(1)} km</p><p>総稼働件数：{totalJobs}件</p></div>
-        <section className="mt-4 border-t border-black pt-3 text-sm"><p className="font-semibold">ガソリン代計算欄 <span className="font-normal">（給与計算担当者記載）</span></p><p className="mt-2">単価（　　　円） × 総距離数（{totalDistance.toFixed(1)} km） ＝ 合計（　　　　　　円）</p></section>
-        <p className="mt-4 text-right text-xs text-muted-foreground">印刷日：{formatDateJP(todayJST())}</p>
+      <article className="print-container rounded-lg border border-border bg-white p-6 shadow-sm">
+        <div className="mb-4 border-b-2 pb-3" style={{ borderColor: "#333" }}>
+          <h1 className="mb-2 text-center text-xl font-bold" style={{ color: "#000" }}>車両運行日報</h1>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div><p style={{ color: "#666" }}>運転者名</p><p className="text-base font-semibold" style={{ color: "#000" }}>{driverName}</p></div>
+            <div><p style={{ color: "#666" }}>車両番号</p><p className="text-base font-semibold" style={{ color: "#000" }}>{vehicleNumber}</p></div>
+          </div>
+          <p className="mt-2 text-center text-sm" style={{ color: "#666" }}>対象期間：{formatDateJP(activeCycle.cycleStartDate)} 〜 {formatDateJP(activeCycle.cycleEndDate)}</p>
+        </div>
+
+        <div className="mb-4 overflow-x-auto">
+          <table className="print-table w-full border-collapse text-sm">
+            <thead><tr>{["日付", "出発時間", "終了時間", "出発距離", "終了距離", "走行距離", "稼働件数"].map((header) => <th key={header} className="border px-2 py-2 text-xs font-bold" style={{ backgroundColor: "#e5e5e5", borderColor: "#333", color: "#000" }}>{header}</th>)}</tr></thead>
+            <tbody>
+              {records.length === 0 ? <tr><td colSpan={7} className="border px-2 py-8 text-center text-xs" style={{ color: "#888", borderColor: "#333" }}>記録がありません</td></tr> : records.map((record) => {
+                const incomplete = record.arrivalDistance === null;
+                const incompleteStyle = { color: "#b45309", borderColor: "#333" };
+                const normalStyle = { color: "#000", borderColor: "#333" };
+                return <tr key={record.id}>
+                  <td className="border px-2 py-1 text-xs" style={normalStyle}>{formatDateJP(record.recordDate)}</td>
+                  <td className="border px-2 py-1 text-center text-xs" style={normalStyle}>{record.departureTime}</td>
+                  <td className="border px-2 py-1 text-center text-xs" style={incomplete ? incompleteStyle : normalStyle}>{record.arrivalTime ?? "未入力"}</td>
+                  <td className="border px-2 py-1 text-right text-xs" style={normalStyle}>{record.departureDistance.toFixed(1)}</td>
+                  <td className="border px-2 py-1 text-right text-xs" style={incomplete ? incompleteStyle : normalStyle}>{record.arrivalDistance?.toFixed(1) ?? "-"}</td>
+                  <td className="border px-2 py-1 text-right text-xs font-semibold" style={incomplete ? incompleteStyle : normalStyle}>{incomplete ? "-" : calculateDistance(record).toFixed(1)}</td>
+                  <td className="border px-2 py-1 text-center text-xs" style={{ color: "#444", borderColor: "#333" }}>{record.jobCount != null ? `${record.jobCount}件` : ""}</td>
+                </tr>;
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="border-t-2 pt-3" style={{ borderColor: "#333" }}><div className="flex items-center justify-between"><p style={{ color: "#000" }}>記録日数：<span className="text-lg font-bold">{records.length}日</span></p><p style={{ color: "#000" }}>総走行距離：<span className="text-lg font-bold">{totalDistance.toFixed(1)} km</span></p></div></div>
+
+        <section className="print-gasoline mt-4 border border-neutral-400 bg-neutral-50 p-3 text-sm"><p className="mb-2 text-xs text-neutral-600">※給与計算担当者記載</p><p>ガソリン代：<span className="inline-block min-w-12 border-b border-black">　</span>円（単価）× 総距離数 <strong>{totalDistance.toFixed(1)} km</strong> ＝ <span className="inline-block min-w-20 border-b border-black">　</span>円</p></section>
+        <p className="print-footer mt-4 text-right text-xs text-muted-foreground">印刷日：{formatDateJP(todayJST())}</p>
       </article>
 
-      <div className="no-print mt-6 grid gap-3 sm:grid-cols-2"><button onClick={printReport} className="btn-primary flex items-center justify-center gap-2 py-3"><Printer className="h-5 w-5" />印刷</button><button onClick={printReport} className="btn-secondary flex items-center justify-center gap-2 py-3"><Download className="h-5 w-5" />PDFに保存</button></div>
-      <p className="no-print mt-3 text-center text-sm text-muted-foreground">「PDFに保存」は印刷画面で保存先を「PDFに保存」に選択してください。印刷とPDFは同じA4レイアウトです。</p>
+      <div className="no-print mt-8"><div className="mb-3 grid grid-cols-2 gap-3"><button type="button" onClick={() => window.print()} className="flex items-center justify-center gap-2 rounded-lg py-3 font-medium text-white shadow-md transition-all" style={{ backgroundColor: "#1d4ed8" }}><Printer className="h-5 w-5" />印刷</button><button type="button" onClick={() => window.print()} className="flex items-center justify-center gap-2 rounded-lg py-3 font-medium text-white shadow-md transition-all" style={{ backgroundColor: "#059669" }}><Download className="h-5 w-5" />PDFに保存</button></div><Link href="/" className="btn-secondary flex w-full items-center justify-center gap-2 py-3"><ArrowLeft className="h-5 w-5" />ホーム</Link><p className="mt-3 text-center text-xs" style={{ color: "#888" }}>※「PDFに保存」は印刷画面で保存先を「PDFに保存」に選択してください。</p></div>
     </VehicleLayout>
   );
 }
