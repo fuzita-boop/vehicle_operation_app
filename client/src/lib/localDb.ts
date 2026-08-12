@@ -133,6 +133,15 @@ export function formatDateJP(value: string) {
   return `${year}/${month}/${day}`;
 }
 
+export function selectIncompleteArrivalTarget(records: LocalRecord[], requestedRecordId: string | null) {
+  const incomplete = records.filter((record) => record.arrivalTime === null || record.arrivalDistance === null);
+  if (requestedRecordId) {
+    const requested = incomplete.find((record) => record.id === requestedRecordId);
+    if (requested) return requested;
+  }
+  return incomplete.at(-1) ?? null;
+}
+
 function makeId(prefix: string) {
   return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
     ? `${prefix}-${crypto.randomUUID()}`

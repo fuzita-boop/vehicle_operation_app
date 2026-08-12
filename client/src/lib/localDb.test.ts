@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addLocalRecord, clearLocalData, exportLocalBackup, getCycleForDate, getLocalData, importLocalBackup, saveProfile, updateLocalRecord } from "./localDb";
+import { addLocalRecord, clearLocalData, exportLocalBackup, getCycleForDate, getLocalData, importLocalBackup, saveProfile, selectIncompleteArrivalTarget, updateLocalRecord } from "./localDb";
 
 function deleteDatabase() {
   return new Promise<void>((resolve, reject) => {
@@ -48,5 +48,16 @@ describe("localDb", () => {
     expect(restored.profile.driverName).toBe("山田 花子");
     expect(restored.records).toHaveLength(1);
     expect(restored.records[0]).toMatchObject({ recordDate: "2026-03-20", arrivalDistance: 225, jobCount: 3 });
+  });
+
+  it("帰着未入力バナーでは指定された未完了記録を優先して開き、指定がない場合は最新記録を開く", async () => {
+    const completed = await addLocalRecord({ recordDate: "2026-04-16", departureTime: "08:00", departureDistance: 1000, arrivalTime: "12:00", arrivalDistance: 1010, jobCount: 1 });
+    const firstIncomplete = await addLocalRecord({ recordDate: "2026-04-16", departureTime: "13:00", departureDistance: 1010, arrivalTime: null, arrivalDistance: null, jobCount: null });
+    const latestIncomplete = await addLocalRecord({ recordDate: "2026-04-16", departureTime: "17:00", departureDistance: 1010, arrivalTime: null, arrivalDistance: null, jobCount: null });
+    const records = (await getLocalData()).records;
+
+    expect(selectIncompleteArrivalTarget(records, firstIncomplete.id)?.id).toBe(firstIncomplete.id);
+    expect(selectIncompleteArrivalTarget(records, completed.id)?.id).toBe(latestIncomplete.id);
+    expect(selectIncompleteArrivalTarget(records, null)?.id).toBe(latestIncomplete.id);
   });
 });

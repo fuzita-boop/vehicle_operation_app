@@ -22,7 +22,13 @@ export default function Home() {
   }, [data]);
 
   const cycle = useMemo(() => getCycleForDate(todayJST()), []);
-  const incompleteCount = data?.records.filter((record) => record.arrivalTime === null || record.arrivalDistance === null).length ?? 0;
+  const incompleteRecords = useMemo(
+    () => (data?.records ?? []).filter((record) => record.cycleId === cycle.id && (record.arrivalTime === null || record.arrivalDistance === null)),
+    [data?.records, cycle.id],
+  );
+  const incompleteCount = incompleteRecords.length;
+  const latestIncomplete = incompleteRecords.at(-1);
+  const arrivalHref = latestIncomplete ? `/daily-record?openArrival=${encodeURIComponent(latestIncomplete.id)}` : "/daily-record";
 
   const saveDriver = async () => {
     await saveProfile({ driverName: driverName.trim(), vehicleNumber: data?.profile.vehicleNumber ?? "" });
@@ -74,7 +80,7 @@ export default function Home() {
       {message && <p className="mb-5 rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-900">{message}</p>}
 
       {incompleteCount > 0 && (
-        <Link href="/daily-record?openArrival=1" className="mb-6 flex items-center gap-3 rounded-xl border-2 px-5 py-4 shadow-sm" style={{ backgroundColor: "#fff7ed", borderColor: "#f97316", textDecoration: "none" }}>
+        <Link href={arrivalHref} className="mb-6 flex items-center gap-3 rounded-xl border-2 px-5 py-4 shadow-sm" style={{ backgroundColor: "#fff7ed", borderColor: "#f97316", textDecoration: "none" }}>
           <AlertTriangle className="h-6 w-6 shrink-0" style={{ color: "#ea580c" }} />
           <div className="flex-1">
             <p className="font-bold" style={{ color: "#9a3412" }}>帰着未入力の記録が {incompleteCount} 件あります</p>
@@ -99,7 +105,7 @@ export default function Home() {
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
-        <Link href={incompleteCount > 0 ? "/daily-record?openArrival=1" : "/daily-record"} className="rounded-xl py-8 text-center shadow-sm" style={{ backgroundColor: incompleteCount ? "#fff7ed" : "var(--card)", border: incompleteCount ? "2px solid #f97316" : "1px solid var(--border)", textDecoration: "none" }}>
+        <Link href={arrivalHref} className="rounded-xl py-8 text-center shadow-sm" style={{ backgroundColor: incompleteCount ? "#fff7ed" : "var(--card)", border: incompleteCount ? "2px solid #f97316" : "1px solid var(--border)", textDecoration: "none" }}>
           <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: incompleteCount ? "#fed7aa" : "#1d4ed8" }}><Plus className="h-9 w-9 text-white" /></div>
           <h3 className="text-lg font-semibold text-foreground">本日の記録を入力</h3><p className="mt-1 text-sm text-muted-foreground">出発・帰着・稼働件数を記録</p>
         </Link>
