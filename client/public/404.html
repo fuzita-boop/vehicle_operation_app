@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>車両運行日報を開いています…</title>
+  </head>
+  <body>
+    <script>
+      (function () {
+        var parts = window.location.pathname.split("/").filter(Boolean);
+        var base = parts.length > 0 ? "/" + parts[0] + "/" : "/";
+        var route = window.location.pathname.slice(base.length) + window.location.search + window.location.hash;
+        window.sessionStorage.setItem("vehicle-operation-pending-path", route);
+        window.location.replace(base);
+      })();
+    </script>
+  </body>
+</html>

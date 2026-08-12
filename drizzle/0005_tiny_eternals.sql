@@ -1,1 +1,0 @@
-ALTER TABLE `dailyRecords` ADD `notes` text;

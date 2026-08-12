@@ -1,32 +1,20 @@
 <!doctype html>
 <html lang="ja">
-
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
-    <title>車両運行日報</title>
-    <meta name="description" content="車両運行日報管理アプリ - 毎日の走行記録を簡単に管理" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
+    <meta name="description" content="端末内に保存してオフラインでも使える車両運行日報アプリ" />
+    <meta name="theme-color" content="#1d4ed8" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="運行日報" />
-    <meta name="theme-color" content="#1e3a5f" />
-    <link rel="icon" type="image/png" href="https://d2xsxph8kpxj0f.cloudfront.net/310519663217122276/megdFLwq3PKkC44ndRH8R7/app-icon-512-fJTgq7ih4EqDhMWmywUkcj.png" />
-    <link rel="apple-touch-icon" href="https://d2xsxph8kpxj0f.cloudfront.net/310519663217122276/megdFLwq3PKkC44ndRH8R7/app-icon-512-fJTgq7ih4EqDhMWmywUkcj.png" />
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
+    <link rel="icon" href="%BASE_URL%icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="%BASE_URL%icons/icon.svg" />
+    <title>車両運行日報</title>
   </head>
-
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script
-      defer
-      src="%VITE_ANALYTICS_ENDPOINT%/umami"
-      data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"></script>
   </body>
-
 </html>
