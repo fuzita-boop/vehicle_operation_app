@@ -294,25 +294,25 @@ export default function DailyRecord() {
             </article>;
           }
 
-          return <article key={record.id} className="card-elegant p-4 transition-all" style={isArrivalTarget ? { borderLeft: "4px solid #d97706", backgroundColor: "#fffbeb" } : recordIsIncomplete ? { borderLeft: "4px solid #f59e0b" } : {}}>
-            {recordIsIncomplete && <div className="mb-2 flex items-center gap-1"><span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: "#fef3c7", color: "#92400e" }}>帰着未入力</span>{isArrivalTarget && <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: "#fed7aa", color: "#9a3412" }}>↑ 帰着入力中</span>}</div>}
-            <div className="flex items-center justify-between gap-3">
-              <div className="grid flex-1 grid-cols-3 gap-3 text-sm sm:grid-cols-6">
-                <div><FieldLabel>日付</FieldLabel><p className="font-medium" style={{ color: "#111" }}>{formatDateJP(record.recordDate)}</p></div>
-                <div><FieldLabel>出発</FieldLabel><p className="font-medium" style={{ color: "#111" }}>{record.departureTime}</p></div>
-                <div><FieldLabel>終了</FieldLabel><p className="font-medium" style={{ color: recordIsIncomplete ? "#f59e0b" : "#111" }}>{record.arrivalTime ?? "未入力"}</p></div>
-                <div><FieldLabel>出発距離</FieldLabel><p className="font-medium" style={{ color: "#111" }}>{record.departureDistance.toFixed(1)}</p></div>
-                <div><FieldLabel>終了距離</FieldLabel><p className="font-medium" style={{ color: recordIsIncomplete ? "#f59e0b" : "#111" }}>{record.arrivalDistance?.toFixed(1) ?? "-"}</p></div>
-                <div><FieldLabel>走行距離</FieldLabel><p className="font-bold" style={{ color: recordIsIncomplete ? "#f59e0b" : "#1d4ed8" }}>{driven === null ? "-" : `${driven.toFixed(1)} km`}</p></div>
+          return <article key={record.id} className="relative rounded-3xl border bg-white px-5 py-5 shadow-sm transition-all" style={isArrivalTarget ? { borderColor: "#fdba74", borderLeft: "5px solid #d97706", backgroundColor: "#fffbeb" } : recordIsIncomplete ? { borderColor: "#fed7aa", borderLeft: "5px solid #f59e0b" } : { borderColor: "#e5e7eb" }}>
+            {recordIsIncomplete && <div className="mb-3 flex items-center gap-1"><span className="rounded-full px-3 py-1 text-xs font-bold" style={{ backgroundColor: "#fef3c7", color: "#92400e" }}>帰着未入力</span>{isArrivalTarget && <span className="rounded-full px-2 py-1 text-xs font-medium" style={{ backgroundColor: "#fed7aa", color: "#9a3412" }}>帰着入力中</span>}</div>}
+            <div className="flex items-center gap-3">
+              <div className="grid min-w-0 flex-1 grid-cols-3 gap-x-4 gap-y-4">
+                <div><FieldLabel>日付</FieldLabel><p className="text-lg font-semibold leading-tight" style={{ color: "#111" }}>{formatDateJP(record.recordDate)}</p></div>
+                <div><FieldLabel>出発</FieldLabel><p className="text-lg font-semibold leading-tight" style={{ color: "#111" }}>{record.departureTime}</p></div>
+                <div><FieldLabel>終了</FieldLabel><p className="text-lg font-semibold leading-tight" style={{ color: recordIsIncomplete ? "#d97706" : "#111" }}>{record.arrivalTime ?? "未入力"}</p></div>
+                <div><FieldLabel>出発距離</FieldLabel><p className="text-lg font-semibold leading-tight" style={{ color: "#111" }}>{record.departureDistance.toFixed(1)}</p></div>
+                <div><FieldLabel>終了距離</FieldLabel><p className="text-lg font-semibold leading-tight" style={{ color: recordIsIncomplete ? "#d97706" : "#111" }}>{record.arrivalDistance?.toFixed(1) ?? "-"}</p></div>
+                <div><FieldLabel>走行距離</FieldLabel><p className="text-lg font-bold leading-tight" style={{ color: recordIsIncomplete ? "#d97706" : "#2563eb" }}>{driven === null ? "-" : `${driven.toFixed(1)} km`}</p></div>
+                {record.jobCount !== null && <p className="col-span-3 -mt-1 text-xs" style={{ color: "#6b7280" }}>稼働件数：<strong style={{ color: "#374151" }}>{record.jobCount}件</strong></p>}
               </div>
-              <div className="ml-1 flex shrink-0 gap-1">
-                {recordIsIncomplete && <button type="button" onClick={() => openArrival(record)} className="flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-white" style={{ backgroundColor: isArrivalTarget ? "#b45309" : "#d97706" }} title="帰着情報を入力"><LogOut className="h-3 w-3" />帰着</button>}
-                <button type="button" onClick={() => beginEdit(record)} className="rounded-md p-2 transition-colors hover:bg-blue-50" title="編集" aria-label="編集"><Pencil className="h-4 w-4" style={{ color: "#1d4ed8" }} /></button>
-                <button type="button" onClick={() => void removeRecord(record)} className="rounded-md p-2 transition-colors hover:bg-red-50" title="削除" aria-label="削除"><Trash2 className="h-4 w-4" style={{ color: "#dc2626" }} /></button>
+              <div className="flex shrink-0 items-center gap-1">
+                {recordIsIncomplete && <button type="button" onClick={() => openArrival(record)} className="flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm font-bold text-white shadow-sm" style={{ backgroundColor: isArrivalTarget ? "#b45309" : "#d97706" }} title="帰着情報を入力"><LogOut className="h-4 w-4" />帰着</button>}
+                <button type="button" onClick={() => beginEdit(record)} className="rounded-xl p-2.5 transition-colors hover:bg-blue-50" title="編集" aria-label="編集"><Pencil className="h-6 w-6" style={{ color: "#2563eb" }} /></button>
+                <button type="button" onClick={() => void removeRecord(record)} className="rounded-xl p-2.5 transition-colors hover:bg-red-50" title="削除" aria-label="削除"><Trash2 className="h-6 w-6" style={{ color: "#dc2626" }} /></button>
               </div>
             </div>
-            {record.jobCount !== null && <p className="mt-3 text-xs" style={{ color: "#555" }}><span className="font-medium" style={{ color: "#888" }}>稼働件数：</span>{record.jobCount}件</p>}
-            {recordIsIncomplete && <p className="mt-2 flex items-center gap-1 text-sm font-medium text-orange-800"><AlertTriangle className="h-4 w-4" />帰着後に「帰着」ボタンから終了情報を入力してください。</p>}
+            {recordIsIncomplete && <p className="mt-3 flex items-center gap-1 text-sm font-medium text-orange-800"><AlertTriangle className="h-4 w-4" />帰着後に「帰着」ボタンから終了情報を入力してください。</p>}
           </article>;
         })}</div>}
       </section>
