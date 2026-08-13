@@ -23,7 +23,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 
 type DepartureForm = { recordDate: string; departureTime: string; departureDistance: string };
@@ -97,10 +97,25 @@ export default function DailyRecord() {
     if (selected) openArrival(selected);
   }, [data, arrivalQuery]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!arrivalTarget) return;
-    const timer = window.setTimeout(() => arrivalSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
-    return () => window.clearTimeout(timer);
+
+    const scrollToArrivalForm = () => {
+      const section = arrivalSectionRef.current;
+      if (!section) return;
+      const top = window.scrollY + section.getBoundingClientRect().top - 16;
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      section.focus({ preventScroll: true });
+    };
+
+    const firstFrame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(scrollToArrivalForm);
+    });
+    const fallbackTimer = window.setTimeout(scrollToArrivalForm, 350);
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.clearTimeout(fallbackTimer);
+    };
   }, [arrivalTarget?.id]);
 
   const saveDeparture = async () => {
@@ -253,7 +268,7 @@ export default function DailyRecord() {
             </div>
           </section>
 
-          {arrivalTarget && <section ref={arrivalSectionRef} id="arrival-form" className="rounded-xl border-2 p-5 shadow-sm" style={{ borderColor: "#f97316", backgroundColor: "#fff7ed" }}>
+          {arrivalTarget && <section ref={arrivalSectionRef} id="arrival-form" tabIndex={-1} className="rounded-xl border-2 p-5 shadow-sm" style={{ borderColor: "#f97316", backgroundColor: "#fff7ed" }}>
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><LogOut className="h-5 w-5 text-orange-600" /><h2 className="text-lg font-semibold text-orange-900">帰着記録を入力</h2></div><span className="rounded-full bg-orange-200 px-3 py-1 text-xs font-bold text-orange-900">帰着入力中</span></div>
             <div className="mb-4 rounded-lg border border-orange-300 bg-white p-3 text-sm text-orange-950"><p className="font-bold">出発情報（参照）</p><p className="mt-1">{formatDateJP(arrivalTarget.recordDate)}／{arrivalTarget.departureTime}／{arrivalTarget.departureDistance.toFixed(1)} km</p></div>
             <div className="space-y-4">
