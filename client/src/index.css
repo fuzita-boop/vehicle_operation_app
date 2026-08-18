@@ -119,8 +119,13 @@
 }
 
 @layer base {
-  * {
+  *, *::before, *::after {
+    box-sizing: border-box;
     @apply border-border outline-ring/50;
+  }
+  input, select, textarea {
+    box-sizing: border-box;
+    max-width: 100%;
   }
   body {
     @apply bg-background text-foreground;
