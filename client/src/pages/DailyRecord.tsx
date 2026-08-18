@@ -30,7 +30,39 @@ type DepartureForm = { recordDate: string; departureTime: string; departureDista
 type ArrivalForm = { arrivalTime: string; arrivalDistance: string; jobCount: string };
 type EditForm = DepartureForm & ArrivalForm;
 
-const emptyDeparture = (): DepartureForm => ({ recordDate: todayJST(), departureTime: "", departureDistance: "" });
+function formatDateEntry(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}/${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}/${digits.slice(4, 6)}/${digits.slice(6)}`;
+}
+
+function parseDateEntry(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (!/^\d{8}$/.test(digits)) return null;
+  const year = Number(digits.slice(0, 4));
+  const month = Number(digits.slice(4, 6));
+  const day = Number(digits.slice(6, 8));
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+}
+
+function formatTimeEntry(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 4);
+  return digits.length <= 2 ? digits : `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
+function parseTimeEntry(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (!/^\d{4}$/.test(digits)) return null;
+  const hour = Number(digits.slice(0, 2));
+  const minute = Number(digits.slice(2, 4));
+  if (hour > 23 || minute > 59) return null;
+  return `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
+}
+
+const emptyDeparture = (): DepartureForm => ({ recordDate: formatDateEntry(todayJST()), departureTime: "", departureDistance: "" });
 const emptyArrival = (): ArrivalForm => ({ arrivalTime: "", arrivalDistance: "", jobCount: "" });
 const isIncomplete = (record: LocalRecord) => record.arrivalTime === null || record.arrivalDistance === null;
 
@@ -120,8 +152,10 @@ export default function DailyRecord() {
 
   const saveDeparture = async () => {
     const departureDistance = Number(departureForm.departureDistance);
-    if (!departureForm.recordDate || !departureForm.departureTime) {
-      setMessage("記録日と出発時間を入力してください。");
+    const recordDate = parseDateEntry(departureForm.recordDate);
+    const departureTime = parseTimeEntry(departureForm.departureTime);
+    if (!recordDate || !departureTime) {
+      setMessage("記録日はYYYY/MM/DD、出発時間はHH:MMで入力してください。");
       return;
     }
     if (!Number.isFinite(departureDistance) || departureDistance < 0) {
@@ -129,8 +163,8 @@ export default function DailyRecord() {
       return;
     }
     await addLocalRecord({
-      recordDate: departureForm.recordDate,
-      departureTime: departureForm.departureTime,
+      recordDate,
+      departureTime,
       departureDistance,
       arrivalTime: null,
       arrivalDistance: null,
@@ -145,8 +179,9 @@ export default function DailyRecord() {
     if (!arrivalTarget) return;
     const arrivalDistance = Number(arrivalForm.arrivalDistance);
     const jobCount = arrivalForm.jobCount.trim() === "" ? null : Number(arrivalForm.jobCount);
-    if (!arrivalForm.arrivalTime) {
-      setMessage("終了時間を入力してください。");
+    const arrivalTime = parseTimeEntry(arrivalForm.arrivalTime);
+    if (!arrivalTime) {
+      setMessage("終了時間をHH:MMで入力してください。");
       return;
     }
     if (!Number.isFinite(arrivalDistance) || arrivalDistance < 0) {
@@ -158,7 +193,7 @@ export default function DailyRecord() {
       setMessage("稼働件数は0以上の整数で入力してください。");
       return;
     }
-    await updateLocalRecord(arrivalTarget.id, { arrivalTime: arrivalForm.arrivalTime, arrivalDistance, jobCount });
+    await updateLocalRecord(arrivalTarget.id, { arrivalTime, arrivalDistance, jobCount });
     setArrivalTarget(null);
     setArrivalForm(emptyArrival());
     await refresh();
@@ -173,10 +208,10 @@ export default function DailyRecord() {
     setArrivalTarget(null);
     setEditing(record);
     setEditForm({
-      recordDate: record.recordDate,
-      departureTime: record.departureTime,
+      recordDate: formatDateEntry(record.recordDate),
+      departureTime: formatTimeEntry(record.departureTime),
       departureDistance: String(record.departureDistance),
-      arrivalTime: record.arrivalTime ?? "",
+      arrivalTime: record.arrivalTime ? formatTimeEntry(record.arrivalTime) : "",
       arrivalDistance: record.arrivalDistance?.toString() ?? "",
       jobCount: record.jobCount?.toString() ?? "",
     });
@@ -193,8 +228,15 @@ export default function DailyRecord() {
     const departureDistance = Number(editForm.departureDistance);
     const arrivalDistance = editForm.arrivalDistance.trim() === "" ? null : Number(editForm.arrivalDistance);
     const jobCount = editForm.jobCount.trim() === "" ? null : Number(editForm.jobCount);
-    if (!editForm.recordDate || !editForm.departureTime || !Number.isFinite(departureDistance) || departureDistance < 0) {
-      setMessage("記録日・出発時間・出発時走行距離を正しく入力してください。");
+    const recordDate = parseDateEntry(editForm.recordDate);
+    const departureTime = parseTimeEntry(editForm.departureTime);
+    const arrivalTime = editForm.arrivalTime.trim() === "" ? null : parseTimeEntry(editForm.arrivalTime);
+    if (!recordDate || !departureTime || !Number.isFinite(departureDistance) || departureDistance < 0) {
+      setMessage("記録日はYYYY/MM/DD、出発時間はHH:MM、走行距離は数値で入力してください。");
+      return;
+    }
+    if (editForm.arrivalTime.trim() !== "" && !arrivalTime) {
+      setMessage("終了時間はHH:MMで入力してください。");
       return;
     }
     if (arrivalDistance !== null && (!Number.isFinite(arrivalDistance) || arrivalDistance < 0)) {
@@ -207,10 +249,10 @@ export default function DailyRecord() {
       return;
     }
     const updated = await updateLocalRecord(editing.id, {
-      recordDate: editForm.recordDate,
-      departureTime: editForm.departureTime,
+      recordDate,
+      departureTime,
       departureDistance,
-      arrivalTime: editForm.arrivalTime || null,
+      arrivalTime,
       arrivalDistance,
       jobCount,
     });
@@ -261,8 +303,8 @@ export default function DailyRecord() {
             <div className="mb-4 flex items-center gap-2"><LogIn className="h-5 w-5 text-blue-700" /><h2 className="text-lg font-semibold">出発記録</h2></div>
             <p className="mb-4 text-sm text-muted-foreground">忘れた日の記録も「記録日」を選んで追加できます。保存先の月次サイクルは日付から自動判定されます。</p>
             <div className="space-y-4">
-              <label className="block text-sm font-medium">記録日<input type="date" className="input-elegant mt-2" value={departureForm.recordDate} onChange={(event) => setDepartureForm({ ...departureForm, recordDate: event.target.value })} /></label>
-              <label className="block text-sm font-medium">出発時間 <span className="text-red-500">*</span><input type="time" className="input-elegant mt-2" value={departureForm.departureTime} onChange={(event) => setDepartureForm({ ...departureForm, departureTime: event.target.value })} /></label>
+              <label className="block text-sm font-medium">記録日<input type="text" inputMode="numeric" autoComplete="off" className="input-elegant mt-2" value={departureForm.recordDate} onChange={(event) => setDepartureForm({ ...departureForm, recordDate: formatDateEntry(event.target.value) })} placeholder="例: 2026/08/18" /></label>
+              <label className="block text-sm font-medium">出発時間 <span className="text-red-500">*</span><input type="text" inputMode="numeric" autoComplete="off" className="input-elegant mt-2" value={departureForm.departureTime} onChange={(event) => setDepartureForm({ ...departureForm, departureTime: formatTimeEntry(event.target.value) })} placeholder="例: 09:30" /></label>
               <label className="block text-sm font-medium">出発時走行距離（km） <span className="text-red-500">*</span><input type="number" step="0.1" min="0" className="input-elegant mt-2" value={departureForm.departureDistance} onChange={(event) => setDepartureForm({ ...departureForm, departureDistance: event.target.value })} placeholder="例: 12345.6" /></label>
               <button type="button" onClick={() => void saveDeparture()} className="btn-primary flex w-full items-center justify-center gap-2"><LogIn className="h-5 w-5" />出発記録を保存</button>
             </div>
@@ -272,7 +314,7 @@ export default function DailyRecord() {
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><LogOut className="h-5 w-5 text-orange-600" /><h2 className="text-lg font-semibold text-orange-900">帰着記録を入力</h2></div><span className="rounded-full bg-orange-200 px-3 py-1 text-xs font-bold text-orange-900">帰着入力中</span></div>
             <div className="mb-4 rounded-lg border border-orange-300 bg-white p-3 text-sm text-orange-950"><p className="font-bold">出発情報（参照）</p><p className="mt-1">{formatDateJP(arrivalTarget.recordDate)}／{arrivalTarget.departureTime}／{arrivalTarget.departureDistance.toFixed(1)} km</p></div>
             <div className="space-y-4">
-              <label className="block text-sm font-medium">終了時間 <span className="text-red-500">*</span><input type="time" className="input-elegant mt-2" value={arrivalForm.arrivalTime} onChange={(event) => setArrivalForm({ ...arrivalForm, arrivalTime: event.target.value })} /></label>
+              <label className="block text-sm font-medium">終了時間 <span className="text-red-500">*</span><input type="text" inputMode="numeric" autoComplete="off" className="input-elegant mt-2" value={arrivalForm.arrivalTime} onChange={(event) => setArrivalForm({ ...arrivalForm, arrivalTime: formatTimeEntry(event.target.value) })} placeholder="例: 18:00" /></label>
               <label className="block text-sm font-medium">終了時走行距離（km） <span className="text-red-500">*</span><input type="number" step="0.1" min="0" className="input-elegant mt-2" value={arrivalForm.arrivalDistance} onChange={(event) => setArrivalForm({ ...arrivalForm, arrivalDistance: event.target.value })} /></label>
               <label className="block text-sm font-medium">稼働件数（任意）<input type="number" step="1" min="0" inputMode="numeric" className="input-elegant mt-2" value={arrivalForm.jobCount} onChange={(event) => setArrivalForm({ ...arrivalForm, jobCount: event.target.value })} placeholder="例: 8" /></label>
               <div className="grid gap-3 sm:grid-cols-2"><button type="button" onClick={() => void saveArrival()} className="btn-primary flex items-center justify-center gap-2"><Check className="h-4 w-4" />帰着情報を保存</button><button type="button" onClick={() => { setArrivalTarget(null); setArrivalForm(emptyArrival()); }} className="btn-secondary flex items-center justify-center gap-2"><X className="h-4 w-4" />キャンセル</button></div>
@@ -298,10 +340,10 @@ export default function DailyRecord() {
             return <article key={record.id} className="card-elegant border-2 border-blue-400 p-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold" style={{ color: "#1d4ed8" }}>記録を編集中</h3><div className="flex gap-2"><button type="button" onClick={() => void saveEdit()} className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium text-white" style={{ backgroundColor: "#16a34a" }}><Check className="h-4 w-4" />保存</button><button type="button" onClick={cancelEdit} className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium text-white" style={{ backgroundColor: "#6b7280" }}><X className="h-4 w-4" />取消</button></div></div>
               <div className="grid grid-cols-2 gap-3">
-                <label><FieldLabel>記録日</FieldLabel><input type="date" className="input-elegant text-sm" value={editForm.recordDate} onChange={(event) => setEditForm({ ...editForm, recordDate: event.target.value })} /></label>
+                <label><FieldLabel>記録日</FieldLabel><input type="text" inputMode="numeric" autoComplete="off" className="input-elegant text-sm" value={editForm.recordDate} onChange={(event) => setEditForm({ ...editForm, recordDate: formatDateEntry(event.target.value) })} placeholder="YYYY/MM/DD" /></label>
                 <div><FieldLabel>走行距離</FieldLabel><p className="mt-1 text-lg font-bold" style={{ color: "#1d4ed8" }}>{previewDistance === null ? "-" : `${previewDistance.toFixed(1)} km`}</p></div>
-                <label><FieldLabel>出発時間 *</FieldLabel><input type="time" className="input-elegant text-sm" value={editForm.departureTime} onChange={(event) => setEditForm({ ...editForm, departureTime: event.target.value })} /></label>
-                <label><FieldLabel>終了時間（任意）</FieldLabel><input type="time" className="input-elegant text-sm" value={editForm.arrivalTime} onChange={(event) => setEditForm({ ...editForm, arrivalTime: event.target.value })} /></label>
+                <label><FieldLabel>出発時間 *</FieldLabel><input type="text" inputMode="numeric" autoComplete="off" className="input-elegant text-sm" value={editForm.departureTime} onChange={(event) => setEditForm({ ...editForm, departureTime: formatTimeEntry(event.target.value) })} placeholder="HH:MM" /></label>
+                <label><FieldLabel>終了時間（任意）</FieldLabel><input type="text" inputMode="numeric" autoComplete="off" className="input-elegant text-sm" value={editForm.arrivalTime} onChange={(event) => setEditForm({ ...editForm, arrivalTime: formatTimeEntry(event.target.value) })} placeholder="HH:MM" /></label>
                 <label><FieldLabel>出発走行距離（km） *</FieldLabel><input type="number" step="0.1" min="0" className="input-elegant text-sm" value={editForm.departureDistance} onChange={(event) => setEditForm({ ...editForm, departureDistance: event.target.value })} /></label>
                 <label><FieldLabel>終了走行距離（km）（任意）</FieldLabel><input type="number" step="0.1" min="0" className="input-elegant text-sm" value={editForm.arrivalDistance} onChange={(event) => setEditForm({ ...editForm, arrivalDistance: event.target.value })} placeholder="未入力" /></label>
                 <label className="col-span-2"><FieldLabel>稼働件数（任意）</FieldLabel><input type="number" min="0" step="1" className="input-elegant text-sm" value={editForm.jobCount} onChange={(event) => setEditForm({ ...editForm, jobCount: event.target.value })} placeholder="例: 5" /></label>

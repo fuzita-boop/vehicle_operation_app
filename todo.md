@@ -313,3 +313,8 @@
 - [x] iPhone Safari固有のdate・time入力最小幅によるはみ出しを調査
 - [x] モバイル専用の幅・最小幅・appearance制御でdate・time・number入力をカード内へ収める
 - [x] iPhone Safari向けのinline-size・min-inline-size制約を追加し、記録日・出発時間・走行距離・保存ボタンの左右端を統一
+
+## Phase 50: iPhone Safari向け安定入力コンポーネント
+- [x] 日次フォームで実際に使用中の入力クラスとSafariのはみ出し原因を再確認
+- [x] 記録日・出発時刻を幅が安定する数値テキスト入力へ置き換え
+- [x] 日付・時刻の自動整形・入力検証・出発記録保存を確認し、ネイティブSafari入力への依存を排除
