@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addLocalRecord, clearLocalData, exportLocalBackup, getCycleForDate, getLocalData, importLocalBackup, saveProfile, selectIncompleteArrivalTarget, updateLocalRecord } from "./localDb";
+import { addLocalRecord, clearLocalData, currentTimeJST, exportLocalBackup, getCycleForDate, getLocalData, importLocalBackup, saveProfile, selectIncompleteArrivalTarget, updateLocalRecord } from "./localDb";
 
 function deleteDatabase() {
   return new Promise<void>((resolve, reject) => {
@@ -26,6 +26,10 @@ describe("localDb", () => {
     expect(getCycleForDate("2026-04-15")).toMatchObject({ cycleStartDate: "2026-03-16", cycleEndDate: "2026-04-15" });
     expect(getCycleForDate("2026-04-16")).toMatchObject({ cycleStartDate: "2026-04-16", cycleEndDate: "2026-05-15" });
     expect(getCycleForDate("2027-01-01")).toMatchObject({ cycleStartDate: "2026-12-16", cycleEndDate: "2027-01-15" });
+  });
+
+  it("JST基準の現在時刻をHH:MM形式で返す", () => {
+    expect(currentTimeJST(new Date("2026-08-18T00:34:00.000Z"))).toBe("09:34");
   });
 
   it("プロフィールと日次記録を端末内に保存して更新できる", async () => {

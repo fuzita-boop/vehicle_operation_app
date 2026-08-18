@@ -106,6 +106,17 @@ export function todayJST(date = new Date()): string {
   return `${value("year")}-${value("month")}-${value("day")}`;
 }
 
+export function currentTimeJST(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Tokyo",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("hour")}:${value("minute")}`;
+}
+
 function addMonths(year: number, month: number, offset: number) {
   const total = year * 12 + (month - 1) + offset;
   return { year: Math.floor(total / 12), month: (total % 12) + 1 };

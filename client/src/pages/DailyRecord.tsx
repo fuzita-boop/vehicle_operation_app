@@ -2,6 +2,7 @@ import VehicleLayout from "@/components/VehicleLayout";
 import { useLocalData } from "@/hooks/useLocalData";
 import {
   addLocalRecord,
+  currentTimeJST,
   deleteLocalRecord,
   formatDateJP,
   getCycleForDate,
@@ -32,7 +33,7 @@ type DepartureForm = { recordDate: string; departureTime: string; departureDista
 type ArrivalForm = { arrivalTime: string; arrivalDistance: string; jobCount: string };
 type EditForm = DepartureForm & ArrivalForm;
 
-const emptyDeparture = (): DepartureForm => ({ recordDate: todayJST(), departureTime: "", departureDistance: "" });
+const emptyDeparture = (): DepartureForm => ({ recordDate: todayJST(), departureTime: currentTimeJST(), departureDistance: "" });
 const emptyArrival = (): ArrivalForm => ({ arrivalTime: "", arrivalDistance: "", jobCount: "" });
 const isIncomplete = (record: LocalRecord) => record.arrivalTime === null || record.arrivalDistance === null;
 
@@ -102,7 +103,7 @@ export default function DailyRecord() {
     setEditForm(null);
     setArrivalTarget(record);
     setArrivalForm({
-      arrivalTime: record.arrivalTime ?? "",
+      arrivalTime: record.arrivalTime ?? currentTimeJST(),
       arrivalDistance: record.arrivalDistance?.toString() ?? "",
       jobCount: record.jobCount?.toString() ?? "",
     });
