@@ -364,6 +364,10 @@
 
   .input-elegant {
     @apply w-full rounded-lg border border-input bg-background px-4 py-2 font-medium text-foreground placeholder-muted-foreground transition-all focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20;
+    box-sizing: border-box;
+    inline-size: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
   }
 
   .btn-primary {
@@ -392,5 +396,25 @@
 
   .table-elegant tbody tr:hover {
     @apply bg-muted/50;
+  }
+}
+
+/* iOS Safari may retain an intrinsic minimum width for native date/time controls. */
+@media (max-width: 639px) {
+  .card-elegant label {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .card-elegant .input-elegant,
+  .card-elegant input[type="date"],
+  .card-elegant input[type="time"],
+  .card-elegant input[type="number"] {
+    display: block !important;
+    box-sizing: border-box !important;
+    inline-size: calc(100% - 1px) !important;
+    max-inline-size: calc(100% - 1px) !important;
+    min-inline-size: 0 !important;
   }
 }

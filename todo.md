@@ -304,3 +304,12 @@
 - [x] 入力欄・保存ボタン・カードの横幅が揃わない原因を調査（入力要素のcontent-boxが原因）
 - [x] モバイル用のbox-sizing、幅、最大幅を統一して右側のはみ出しを修正
 - [x] iPhone幅で日付・時刻・走行距離入力欄と保存ボタンの左右端が揃うことを検証
+
+## Phase 48: iPhone幅でのフォーム横幅再検証
+- [x] 公開版相当のiPhone幅でカード・入力欄・保存ボタンの実測幅を確認
+- [x] 親カードを超える要素がないことを検証（入力欄はborder-box・親幅超過なし、最新GitHub Pagesデプロイ成功）
+
+## Phase 49: iPhone Safariのdate・time入力欄はみ出し修正
+- [x] iPhone Safari固有のdate・time入力最小幅によるはみ出しを調査
+- [x] モバイル専用の幅・最小幅・appearance制御でdate・time・number入力をカード内へ収める
+- [x] iPhone Safari向けのinline-size・min-inline-size制約を追加し、記録日・出発時間・走行距離・保存ボタンの左右端を統一
