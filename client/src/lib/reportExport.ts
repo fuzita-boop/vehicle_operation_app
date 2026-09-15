@@ -95,7 +95,11 @@ const exportCss = `
 `;
 
 function createExportDocument(input: ReportExportInput) {
-  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>車両運行日報</title><style>${exportCss}</style></head><body>${createMonthlyReportHtml(input)}</body></html>`;
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>車両運行日報</title><style>${exportCss}
+    .print-action { width: 190mm; margin: 8px auto; text-align: right; }
+    .print-action button { border: 0; border-radius: 6px; background: #1d4ed8; color: #fff; padding: 9px 16px; font: 600 14px -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; }
+    @media print { .print-action { display: none; } }
+  </style></head><body><div class="print-action"><button type="button" id="print-now">印刷する</button></div>${createMonthlyReportHtml(input)}<script>document.getElementById("print-now").addEventListener("click", function () { window.print(); });</script></body></html>`;
 }
 
 export function openMonthlyReportPrint(input: ReportExportInput) {
@@ -113,58 +117,89 @@ export function openMonthlyReportPrint(input: ReportExportInput) {
     popup.focus();
     popup.print();
   };
-  popup.addEventListener("load", triggerPrint, { once: true });
-  window.setTimeout(triggerPrint, 450);
+  // iOS Safariでは文書の描画前にprintを呼ぶと白紙になることがあるため、
+  // 二回の描画フレームと余裕時間を待ってから自動印刷する。
+  popup.addEventListener("load", () => {
+    popup.requestAnimationFrame(() => popup.requestAnimationFrame(() => window.setTimeout(triggerPrint, 850)));
+  }, { once: true });
   return true;
 }
 
-function createStagingReport(input: ReportExportInput) {
-  const host = document.createElement("div");
-  host.setAttribute("aria-hidden", "true");
-  Object.assign(host.style, {
+async function createStagingReportFrame(input: ReportExportInput) {
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  Object.assign(frame.style, {
     position: "fixed",
     left: "-10000px",
     top: "0",
     width: "210mm",
-    padding: "5mm",
+    height: "297mm",
+    border: "0",
     background: "#fff",
     pointerEvents: "none",
   });
-  const style = document.createElement("style");
-  style.textContent = exportCss;
-  host.append(style);
-  host.insertAdjacentHTML("beforeend", createMonthlyReportHtml(input));
-  document.body.append(host);
-  return host;
+
+  frame.srcdoc = createExportDocument(input);
+  const loaded = new Promise<void>((resolve) => frame.addEventListener("load", () => resolve(), { once: true }));
+  document.body.append(frame);
+  await loaded;
+  await frame.contentDocument?.fonts?.ready;
+
+  const report = frame.contentDocument?.querySelector<HTMLElement>(".monthly-report-export");
+  if (!report) {
+    frame.remove();
+    throw new Error("PDF出力用の月次レポートを準備できませんでした。");
+  }
+  return { frame, report };
+}
+
+function getRenderedContentHeight(canvas: HTMLCanvasElement) {
+  const context = canvas.getContext("2d");
+  if (!context) return canvas.height;
+
+  const { data, width, height } = context.getImageData(0, 0, canvas.width, canvas.height);
+  const sampleStep = 4;
+  let lastInkY = 0;
+
+  for (let y = 0; y < height; y += sampleStep) {
+    for (let x = 0; x < width; x += sampleStep) {
+      const offset = (y * width + x) * 4;
+      if (data[offset] < 245 || data[offset + 1] < 245 || data[offset + 2] < 245) {
+        lastInkY = y;
+        break;
+      }
+    }
+  }
+
+  return Math.min(height, Math.max(1, lastInkY + sampleStep * 3));
 }
 
 /** ブラウザ内でPDFを作成する。サーバー・外部APIは利用しない。 */
 export async function saveMonthlyReportPdf(input: ReportExportInput) {
-  const host = createStagingReport(input);
+  const { frame, report } = await createStagingReportFrame(input);
   try {
     const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
-    await document.fonts?.ready;
-    const report = host.querySelector<HTMLElement>(".monthly-report-export");
-    if (!report) throw new Error("PDF出力用の月次レポートを準備できませんでした。");
 
     const canvas = await html2canvas(report, {
       scale: 2,
       backgroundColor: "#ffffff",
       logging: false,
       useCORS: true,
-      // TailwindのOKLCH指定をhtml2canvasが独自解析すると失敗するため、
-      // WebKit/Chromium自身の描画エンジンを使う方式を指定する。
-      foreignObjectRendering: true,
+      // 本体のTailwind CSS（OKLCH）と切り離したiframe文書を描画する。
+      // html2canvasの既定描画を使うことで、Safariでも白紙にならないようにする。
+      foreignObjectRendering: false,
     });
+    if (canvas.width < 10 || canvas.height < 10) throw new Error("PDF用の描画内容を取得できませんでした。");
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
     const margin = 5;
     const usableWidth = 210 - margin * 2;
     const usableHeight = 297 - margin * 2;
     const pixelsPerMm = canvas.width / usableWidth;
     const pagePixels = Math.max(1, Math.floor(usableHeight * pixelsPerMm));
+    const renderedHeight = getRenderedContentHeight(canvas);
 
-    for (let top = 0, page = 0; top < canvas.height; top += pagePixels, page += 1) {
-      const height = Math.min(pagePixels, canvas.height - top);
+    for (let top = 0, page = 0; top < renderedHeight; top += pagePixels, page += 1) {
+      const height = Math.min(pagePixels, renderedHeight - top);
       const piece = document.createElement("canvas");
       piece.width = canvas.width;
       piece.height = height;
@@ -198,6 +233,6 @@ export async function saveMonthlyReportPdf(input: ReportExportInput) {
     window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     return "download" as const;
   } finally {
-    host.remove();
+    frame.remove();
   }
 }

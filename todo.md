@@ -344,3 +344,13 @@
 - [x] GitHub Pages用ビルドと公開用静的成果物の両方を生成できるよう確認
 - [x] 公開ビルドを再検証（dist/public/index.html・Service Workerを生成、全10件パス）
 - [x] GitHub Pagesデプロイの完了を確認（Actions成功・公開URLのホーム画面を確認）
+
+## Phase 56: Manus公開時の静的サーバー起動修正
+- [x] 公開ログのdist/index.js不在を解消する最小静的サーバー起動ファイルを生成
+- [x] GitHub Pages用dist/public配布とManus公開用起動エントリポイントを両立
+- [x] 公開用ビルド・ローカル起動を再検証（dist/index.jsがポート3100で正常応答）
+
+## Phase 57: PDF・印刷の白紙出力修正
+- [x] 現在の月次レポートPDFと印刷用HTMLの出力内容を確認（PDFが白紙になることを再現）
+- [x] PDF・印刷に日報内容が確実に描画される処理へ修正（隔離A4文書の描画・印刷待機・手動印刷導線）
+- [x] 実PDF・印刷用画面を検証（白紙でないPDF、A4 1ページ、型検査・Vitest 10件パス）
