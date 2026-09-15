@@ -1,6 +1,7 @@
 import VehicleLayout from "@/components/VehicleLayout";
 import { useLocalData } from "@/hooks/useLocalData";
 import { formatDateJP, getCycleForDate, LocalRecord, todayJST } from "@/lib/localDb";
+import { openMonthlyReportPrint, saveMonthlyReportPdf } from "@/lib/reportExport";
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, Printer } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
@@ -36,6 +37,17 @@ export default function MonthlyReport() {
   const totalDistance = records.reduce((sum, record) => sum + calculateDistance(record), 0);
   const driverName = data?.profile.driverName || "-";
   const vehicleNumber = data?.profile.vehicleNumber || "-";
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  const exportInput = useMemo(() => ({
+    driverName,
+    vehicleNumber,
+    cycleStartDate: activeCycle.cycleStartDate,
+    cycleEndDate: activeCycle.cycleEndDate,
+    printedDate: todayJST(),
+    records,
+  }), [activeCycle.cycleEndDate, activeCycle.cycleStartDate, driverName, records, vehicleNumber]);
 
   const goToPreviousCycle = () => {
     if (activeIndex < cycles.length - 1) setSelectedCycleId(cycles[activeIndex + 1].id);
@@ -43,6 +55,26 @@ export default function MonthlyReport() {
 
   const goToNextCycle = () => {
     if (activeIndex > 0) setSelectedCycleId(cycles[activeIndex - 1].id);
+  };
+
+  const handlePrint = () => {
+    const opened = openMonthlyReportPrint(exportInput);
+    setExportMessage(opened ? "印刷用画面を開きました。表示された画面から印刷してください。" : "印刷用画面を開けませんでした。ポップアップの許可を確認して、もう一度お試しください。");
+  };
+
+  const handlePdfSave = async () => {
+    setIsGeneratingPdf(true);
+    setExportMessage("PDFを作成しています…");
+    try {
+      const result = await saveMonthlyReportPdf(exportInput);
+      setExportMessage(result === "share" ? "PDFを作成しました。共有画面から「ファイルに保存」を選択してください。" : "PDFをダウンロードしました。ダウンロード一覧をご確認ください。");
+    } catch (exportError) {
+      console.error(exportError);
+      const detail = exportError instanceof Error ? exportError.message : String(exportError);
+      setExportMessage(`PDFの作成に失敗しました。${detail}`);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   if (isLoading) {
@@ -115,7 +147,15 @@ export default function MonthlyReport() {
         <p className="print-footer mt-4 text-right text-xs text-muted-foreground">印刷日：{formatDateJP(todayJST())}</p>
       </article>
 
-      <div className="no-print mt-8"><div className="mb-3 grid grid-cols-2 gap-3"><button type="button" onClick={() => window.print()} className="flex items-center justify-center gap-2 rounded-lg py-3 font-medium text-white shadow-md transition-all" style={{ backgroundColor: "#1d4ed8" }}><Printer className="h-5 w-5" />印刷</button><button type="button" onClick={() => window.print()} className="flex items-center justify-center gap-2 rounded-lg py-3 font-medium text-white shadow-md transition-all" style={{ backgroundColor: "#059669" }}><Download className="h-5 w-5" />PDFに保存</button></div><Link href="/" className="btn-secondary flex w-full items-center justify-center gap-2 py-3"><ArrowLeft className="h-5 w-5" />ホーム</Link><p className="mt-3 text-center text-xs" style={{ color: "#888" }}>※「PDFに保存」は印刷画面で保存先を「PDFに保存」に選択してください。</p></div>
+      <div className="no-print mt-8">
+        <div className="mb-3 grid grid-cols-2 gap-3">
+          <button type="button" onClick={handlePrint} className="flex items-center justify-center gap-2 rounded-lg py-3 font-medium text-white shadow-md transition-all" style={{ backgroundColor: "#1d4ed8" }}><Printer className="h-5 w-5" />印刷</button>
+          <button type="button" onClick={handlePdfSave} disabled={isGeneratingPdf} className="flex items-center justify-center gap-2 rounded-lg py-3 font-medium text-white shadow-md transition-all disabled:cursor-wait disabled:opacity-70" style={{ backgroundColor: "#059669" }}><Download className="h-5 w-5" />{isGeneratingPdf ? "作成中…" : "PDFに保存"}</button>
+        </div>
+        {exportMessage && <p role="status" className="mb-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-center text-xs text-blue-800">{exportMessage}</p>}
+        <Link href="/" className="btn-secondary flex w-full items-center justify-center gap-2 py-3"><ArrowLeft className="h-5 w-5" />ホーム</Link>
+        <p className="mt-3 text-center text-xs" style={{ color: "#888" }}>※PDFに保存は、端末内でPDFを作成します。iPhoneでは共有画面から「ファイルに保存」を選択してください。</p>
+      </div>
     </VehicleLayout>
   );
 }
