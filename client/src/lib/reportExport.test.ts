@@ -27,7 +27,7 @@ describe("月次レポート出力", () => {
     expect(html).toContain("稼働件数");
   });
 
-  it("サイクル期間を含むPDFファイル名を生成する", () => {
-    expect(createMonthlyReportFilename(input)).toBe("運行日報_2026-08-16_2026-09-15.pdf");
+  it("サイクル期間を見分けられるPDFファイル名を生成する", () => {
+    expect(createMonthlyReportFilename(input)).toBe("運行日報_2026-0816-0915.pdf");
   });
 });

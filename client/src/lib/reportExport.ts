@@ -35,7 +35,9 @@ function distance(record: ReportExportRecord) {
 }
 
 export function createMonthlyReportFilename(input: Pick<ReportExportInput, "cycleStartDate" | "cycleEndDate">) {
-  return `運行日報_${input.cycleStartDate}_${input.cycleEndDate}.pdf`;
+  const start = input.cycleStartDate.replace(/-(?=\d{2}$)/, "");
+  const end = input.cycleEndDate.slice(5).replace("-", "");
+  return `運行日報_${start}-${end}.pdf`;
 }
 
 /** A4サイズで印刷・PDF化するため、CSSやPWA画面に依存しない単独HTMLを生成する。 */
@@ -81,8 +83,8 @@ const exportCss = `
   .identity strong { display: block; margin-top: 1mm; font-size: 11px; }
   .period { margin: 2mm 0 0; color: #555; text-align: center; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  th, td { border: 1px solid #333; padding: 1.1mm 0.6mm; overflow: hidden; font-size: 8.5px; line-height: 1.15; white-space: nowrap; }
-  th { background: #e5e5e5; font-weight: 700; text-align: center; }
+  th, td { height: 5.5mm; border: 1px solid #333; padding: 0 0.6mm; overflow: hidden; font-size: 8.5px; line-height: 1; vertical-align: middle; white-space: nowrap; }
+  th { height: 6.5mm; background: #e5e5e5; font-weight: 700; text-align: center; }
   td:nth-child(1) { width: 16%; } td:nth-child(2), td:nth-child(3) { width: 12%; } td:nth-child(4), td:nth-child(5), td:nth-child(6) { width: 15%; } td:nth-child(7) { width: 15%; }
   .center { text-align: center; } .right { text-align: right; } .strong { font-weight: 700; } .incomplete { color: #b45309; } .empty { padding: 8mm; color: #777; text-align: center; }
   .summary { display: flex; justify-content: space-between; margin-top: 3mm; border-top: 2px solid #333; padding-top: 2.5mm; font-size: 11px; }
