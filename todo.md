@@ -343,4 +343,4 @@
 - [x] 公開失敗の原因であるdist/public不在を修正
 - [x] GitHub Pages用ビルドと公開用静的成果物の両方を生成できるよう確認
 - [x] 公開ビルドを再検証（dist/public/index.html・Service Workerを生成、全10件パス）
-- [ ] GitHub Pagesデプロイの完了を確認
+- [x] GitHub Pagesデプロイの完了を確認（Actions成功・公開URLのホーム画面を確認）
