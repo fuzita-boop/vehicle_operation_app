@@ -78,6 +78,8 @@ Phase 59では、PDF表のヘッダー・データセルを固定行高、縦中
 
 Phase 60の公開版検証では、GitHub Pagesのデプロイ成功後も、既存のService Workerキャッシュが旧JavaScriptを実行し、旧`jspdf`チャンクを動的取得しようとして失敗する状態を確認しました。以後はService Workerの即時更新・制御切替を明示して、旧キャッシュから新バンドルへ確実に移行する必要があります。
 
+Phase 60の最終検証では、Service Workerの`skipWaiting`・`clientsClaim`と制御切替後の再読み込みを追加し、GitHub Pages公開版でPDF保存を実行しました。`Importing a module script failed`は再発せず、画面上で「PDFをダウンロードしました」と表示されることを確認しました。
+
 ## 自動テスト
 
 `client/src/lib/localDb.test.ts`では、月次サイクルの境界日、IndexedDBへのプロフィール・日次記録保存、帰着情報・稼働件数の更新、JSONバックアップからの復元をテスト対象にしています。

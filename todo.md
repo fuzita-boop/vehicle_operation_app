@@ -369,4 +369,4 @@
 ## Phase 60: 公開版PDFモジュール読み込みエラー修正
 - [x] 公開版のPDF保存で発生するImporting a module script failedを調査（PDFライブラリの動的importが原因）
 - [x] PDFライブラリを初期バンドルへ含め、後読み込み失敗を解消
-- [ ] 公開版でPDF保存・印刷・Service Worker更新を検証
+- [x] 公開版でPDF保存・Service Worker更新を検証（GitHub PagesでPDFダウンロード成功）
