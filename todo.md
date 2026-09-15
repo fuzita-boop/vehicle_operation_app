@@ -338,3 +338,9 @@
 - [x] 月次レポートのPDF保存・印刷イベントが反応しない原因を特定（完全ローカルPWAでwindow.printのみを呼び出していた）
 - [x] iPhone Safariを含む標準ブラウザで印刷画面を開く独立HTML出力と、端末内PDF生成処理へ修正
 - [x] PDF保存・印刷の操作を検証（PDF実ファイルのダウンロード、印刷用画面の起動を確認・全10件パス）
+
+## Phase 55: 公開処理の静的成果物出力先修正
+- [x] 公開失敗の原因であるdist/public不在を修正
+- [x] GitHub Pages用ビルドと公開用静的成果物の両方を生成できるよう確認
+- [x] 公開ビルドを再検証（dist/public/index.html・Service Workerを生成、全10件パス）
+- [ ] GitHub Pagesデプロイの完了を確認

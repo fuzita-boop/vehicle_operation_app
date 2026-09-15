@@ -47,7 +47,8 @@ export default defineConfig({
   root: path.resolve(import.meta.dirname, "client"),
   publicDir: path.resolve(import.meta.dirname, "client", "public"),
   build: {
-    outDir: path.resolve(import.meta.dirname, "dist"),
+    // 公開処理・GitHub Pagesの双方が参照する静的成果物を同じ場所へ生成する。
+    outDir: path.resolve(import.meta.dirname, "dist", "public"),
     emptyOutDir: true,
   },
   server: {
