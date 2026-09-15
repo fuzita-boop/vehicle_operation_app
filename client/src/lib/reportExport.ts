@@ -1,3 +1,6 @@
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+
 export type ReportExportRecord = {
   recordDate: string;
   departureTime: string;
@@ -180,8 +183,6 @@ function getRenderedContentHeight(canvas: HTMLCanvasElement) {
 export async function saveMonthlyReportPdf(input: ReportExportInput) {
   const { frame, report } = await createStagingReportFrame(input);
   try {
-    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
-
     const canvas = await html2canvas(report, {
       scale: 2,
       backgroundColor: "#ffffff",

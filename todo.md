@@ -365,3 +365,8 @@
 - [x] PDF表の行高・縦位置・余白を調整して文字をセル中央へ配置
 - [x] PDFファイル名を運行日報_YYYY-MMDD-MMDD.pdf形式へ変更
 - [x] 実PDFの表レイアウトとファイル名を検証（運行日報_2026-0816-0915.pdf、A4 1ページ）
+
+## Phase 60: 公開版PDFモジュール読み込みエラー修正
+- [x] 公開版のPDF保存で発生するImporting a module script failedを調査（PDFライブラリの動的importが原因）
+- [x] PDFライブラリを初期バンドルへ含め、後読み込み失敗を解消
+- [ ] 公開版でPDF保存・印刷・Service Worker更新を検証
