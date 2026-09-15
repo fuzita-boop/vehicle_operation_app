@@ -13,6 +13,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: false,
       includeAssets: ["icons/icon.svg"],
       manifest: {
         name: "車両運行日報",
@@ -33,6 +34,8 @@ export default defineConfig({
         navigateFallback: "index.html",
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webmanifest}"],
         cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
       },
       devOptions: {
         enabled: true,
